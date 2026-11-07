@@ -1,0 +1,93 @@
+diff --git a/drivers/net/wireless/ath/ath9k/dcf_math.h b/drivers/net/wireless/ath/ath9k/dcf_math.h
+index 6f7004e..aae34dd 100644
+--- a/drivers/net/wireless/ath/ath9k/dcf_math.h
++++ b/drivers/net/wireless/ath/ath9k/dcf_math.h
+@@ -49,4 +49,23 @@ ath_dcf_attempt_delta(bool rts_cts, bool acked, u8 short_retries,
+ 	return delta;
+ }
+ 
++/* Basic DATA retries can span several hardware series at the same bitrate.
++ * ts_longretry belongs to the terminal series; earlier series used their
++ * configured counts. Keep the provisional RTS mapping above unchanged.
++ */
++static inline struct ath_dcf_attempt_delta
++ath_dcf_basic_attempt_delta(bool acked, u8 long_retries,
++			    u32 prior_series_attempts,
++			    u32 success_us, u32 failure_us)
++{
++	struct ath_dcf_attempt_delta delta;
++
++	delta = ath_dcf_attempt_delta(false, acked, 0, long_retries,
++				      success_us, failure_us);
++	delta.data_attempts += prior_series_attempts;
++	delta.exchange_attempts += prior_series_attempts;
++	delta.modeled_exchange_us += (u64)prior_series_attempts * failure_us;
++	return delta;
++}
++
+ #endif /* ATH9K_DCF_MATH_H */
+diff --git a/drivers/net/wireless/ath/ath9k/debug.c b/drivers/net/wireless/ath/ath9k/debug.c
+index 7209791..8d3731a 100644
+--- a/drivers/net/wireless/ath/ath9k/debug.c
++++ b/drivers/net/wireless/ath/ath9k/debug.c
+@@ -1395,6 +1395,7 @@ static void ath9k_dcf_timing_tx(struct ath_softc *sc, struct ath_buf *bf,
+ 	u16 control_index = 0;
+ 	u16 data_phy_sifs;
+ 	u32 error_status;
++	u32 prior_series_attempts = 0;
+ 	int data_phy;
+ 	int first_rate = -1;
+ 	int i;
+@@ -1448,6 +1449,8 @@ static void ath9k_dcf_timing_tx(struct ath_softc *sc, struct ath_buf *bf,
+ 			continue;
+ 		sample.active_series++;
+ 		sample.configured_tries += rate->count;
++		if (i < ts->ts_rateindex)
++			prior_series_attempts += rate->count;
+ 		if (first_rate < 0)
+ 			first_rate = rate->idx;
+ 		if (rate->idx != first_rate ||
+@@ -1525,11 +1528,20 @@ static void ath9k_dcf_timing_tx(struct ath_softc *sc, struct ath_buf *bf,
+ 	measure_sample = (capture_state & ATH_DCF_CAPTURE_MODE_MASK) ==
+ 			 ATH_DCF_CAPTURE_MEASUREMENT && sample.success_time_us &&
+ 			 sample.failure_time_us && sample.fixed_rate;
+-	if (measure_sample)
+-		delta = ath_dcf_attempt_delta(sample.protection == ATH_DCF_PROTECTION_RTS_CTS,
+-					      sample.acked, sample.short_retries,
+-					      sample.long_retries, sample.success_time_us,
+-					      sample.failure_time_us);
++	if (measure_sample) {
++		if (sample.protection == ATH_DCF_PROTECTION_BASIC)
++			delta = ath_dcf_basic_attempt_delta(sample.acked,
++						    sample.long_retries,
++						    prior_series_attempts,
++						    sample.success_time_us,
++						    sample.failure_time_us);
++		else
++			delta = ath_dcf_attempt_delta(true, sample.acked,
++						 sample.short_retries,
++						 sample.long_retries,
++						 sample.success_time_us,
++						 sample.failure_time_us);
++	}
+ 
+ 	/* Commit both consumers before a control transition can freeze/reset. */
+ 	spin_lock(&measurement->lock);
+@@ -1761,6 +1773,7 @@ static int read_file_dcf_stats(struct seq_file *file, void *unused)
+ 	seq_puts(file, "version=2 units=us scope=tx-attempt-window ");
+ 	seq_printf(file,
+ 		   "running=%u generation=%u elapsed_us=%llu capture=%s hol_abi=1 "
++		   "basic_retry_abi=2 rts_retry_abi=1 "
+ 		   "peer_capacity=%u peer_overflow=%llu "
+ 		   "config_mismatches=%llu excluded_samples=%llu\n",
+ 		   snapshot->running, snapshot->generation,
+@@ -1781,7 +1794,8 @@ static int read_file_dcf_stats(struct seq_file *file, void *unused)
+ 		   "hol_service_clock=host_monotonic;"
+ 		   "hol_service_requires_one_fifo_tid_and_callback_calibration;"
+ 		   "hol_service_is_not_hardware_tsf_exact;"
+-		   "retry_stage_mapping_requires_monitor_validation\n");
++		   "basic_attempts_include_prior_rate_series;"
++		   "rts_retry_stage_mapping_requires_monitor_validation\n");
+ 
+ 	for (ac = 0; ac < IEEE80211_NUM_ACS; ac++) {
+ 		const struct ath_dcf_attempt_stats *s = &snapshot->ac[ac];

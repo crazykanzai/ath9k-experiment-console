@@ -1,0 +1,11 @@
+{
+  "design_only": true,
+  "schema_version": 2,
+  "implemented": false,
+  "devices": [
+    {"node_id": "device-001", "display_name": "example node", "management_address": "192.0.2.10", "ssh_port": 22, "username": "experiment", "credential_ref": "example-credential", "enabled": true, "radios": []}
+  ],
+  "task_role_assignments": [],
+  "round_active_sender_ids": [],
+  "notes": "Physical identity, radio resources, task role and active senders are separate. Not accepted by the current six-role validator."
+}

@@ -1,0 +1,1776 @@
+{
+  "date": "2026-11-07",
+  "source_repository": "https://github.com/tangshier47-collab/APSTASELECT",
+  "source_base_commit": "329a0345f42b07525a561578439db849ed50fbe3",
+  "source_includes_uncommitted_workspace": true,
+  "files": [
+    {
+      "source": "labconsole/config.py",
+      "destination": "labconsole/config.py",
+      "source_sha256": "ce1c024caac02854adda38a3882ecd28a219a66886144ff9150b7d583fa2eebf",
+      "published_sha256": "ce1c024caac02854adda38a3882ecd28a219a66886144ff9150b7d583fa2eebf",
+      "adaptation": null
+    },
+    {
+      "source": "labconsole/live.py",
+      "destination": "labconsole/live.py",
+      "source_sha256": "a8975fb3555762a07050098b5995f5d88f4c861ff81bed08c3a278d7e863fa92",
+      "published_sha256": "a8975fb3555762a07050098b5995f5d88f4c861ff81bed08c3a278d7e863fa92",
+      "adaptation": null
+    },
+    {
+      "source": "labconsole/live_demo.py",
+      "destination": "labconsole/live_demo.py",
+      "source_sha256": "949211f83e2467434220a988fdb771356992cedd86cd24f66f568279ebfcf7ff",
+      "published_sha256": "949211f83e2467434220a988fdb771356992cedd86cd24f66f568279ebfcf7ff",
+      "adaptation": null
+    },
+    {
+      "source": "labconsole/LIVE_TELEMETRY.md",
+      "destination": "labconsole/LIVE_TELEMETRY.md",
+      "source_sha256": "47bed10e6d9224b0dd19c350321c9e87d28199b875485104a03a26cff6a81bd1",
+      "published_sha256": "47bed10e6d9224b0dd19c350321c9e87d28199b875485104a03a26cff6a81bd1",
+      "adaptation": null
+    },
+    {
+      "source": "labconsole/observe.py",
+      "destination": "labconsole/observe.py",
+      "source_sha256": "73b0b64e3ef41d6df3ae9c20fbda796ba305ba09d705bcd7ad5187e928e54d6d",
+      "published_sha256": "73b0b64e3ef41d6df3ae9c20fbda796ba305ba09d705bcd7ad5187e928e54d6d",
+      "adaptation": null
+    },
+    {
+      "source": "labconsole/package_portable.py",
+      "destination": "labconsole/package_portable.py",
+      "source_sha256": "a63fa38a98902854fa7749f141460f73515f1cf427dc585c65d69257dd0aa405",
+      "published_sha256": "a63fa38a98902854fa7749f141460f73515f1cf427dc585c65d69257dd0aa405",
+      "adaptation": null
+    },
+    {
+      "source": "labconsole/plans.py",
+      "destination": "labconsole/plans.py",
+      "source_sha256": "336995491c1f162293748c0c86a798114ca2805054cfddf30a47a6f3207cfe82",
+      "published_sha256": "336995491c1f162293748c0c86a798114ca2805054cfddf30a47a6f3207cfe82",
+      "adaptation": null
+    },
+    {
+      "source": "labconsole/readonly_probe.py",
+      "destination": "labconsole/readonly_probe.py",
+      "source_sha256": "756a71dd6f5906b38126a524c954da9082737d7ed38c88e032d095e288917b94",
+      "published_sha256": "756a71dd6f5906b38126a524c954da9082737d7ed38c88e032d095e288917b94",
+      "adaptation": null
+    },
+    {
+      "source": "labconsole/replay.py",
+      "destination": "labconsole/replay.py",
+      "source_sha256": "f34caae357433336f51dc371dd102cdc10d9a121b6dcc3300ad3313f1aa67f92",
+      "published_sha256": "f34caae357433336f51dc371dd102cdc10d9a121b6dcc3300ad3313f1aa67f92",
+      "adaptation": null
+    },
+    {
+      "source": "labconsole/reports.py",
+      "destination": "labconsole/reports.py",
+      "source_sha256": "f884525328c95c8e37aec5a30b93f35e7f2f25a07791e7edde11b69875b668f6",
+      "published_sha256": "f884525328c95c8e37aec5a30b93f35e7f2f25a07791e7edde11b69875b668f6",
+      "adaptation": null
+    },
+    {
+      "source": "labconsole/server.py",
+      "destination": "labconsole/server.py",
+      "source_sha256": "28c1516f1bdcd797b8f8445b4acb6a5327d05180a851b6b25eca6cbdec2c5a1c",
+      "published_sha256": "28c1516f1bdcd797b8f8445b4acb6a5327d05180a851b6b25eca6cbdec2c5a1c",
+      "adaptation": null
+    },
+    {
+      "source": "labconsole/storage.py",
+      "destination": "labconsole/storage.py",
+      "source_sha256": "b54450178e2889a5ce0a5b0359ddf5fb2fab479845580e9475bda43987632902",
+      "published_sha256": "b54450178e2889a5ce0a5b0359ddf5fb2fab479845580e9475bda43987632902",
+      "adaptation": null
+    },
+    {
+      "source": "labconsole/worker.py",
+      "destination": "labconsole/worker.py",
+      "source_sha256": "327fec48a0dc0acdfd987fb4b24a153566188a715f82447783216cc50b7f2628",
+      "published_sha256": "327fec48a0dc0acdfd987fb4b24a153566188a715f82447783216cc50b7f2628",
+      "adaptation": null
+    },
+    {
+      "source": "labconsole/__init__.py",
+      "destination": "labconsole/__init__.py",
+      "source_sha256": "d741551b271ec54145f4be9258d567ef919dec28e286bc1e61cf81112c51c261",
+      "published_sha256": "d741551b271ec54145f4be9258d567ef919dec28e286bc1e61cf81112c51c261",
+      "adaptation": null
+    },
+    {
+      "source": "labconsole/examples/platform.example.json",
+      "destination": "labconsole/examples/platform.example.json",
+      "source_sha256": "f0e7a7bee1f4aac0504d23b9c072fc66dccf73c43dfe2cf387301e0c3887a928",
+      "published_sha256": "cb247385fffcda32fa063e71cec20e9b9126fe930ee64238f18c11922d302d8c",
+      "adaptation": null
+    },
+    {
+      "source": "labconsole/examples/replay_cw25.json",
+      "destination": "labconsole/examples/replay_cw25.json",
+      "source_sha256": "1a473bf8436b04c5692b393d393f6ffb20fb8c41aa5541bd347ef0862ff2637f",
+      "published_sha256": "4d65d97d189fc2d16697cf318d07675c17160371c99be39c5ab624d64f4bdf9c",
+      "adaptation": "remove personal paths; preserve measurements"
+    },
+    {
+      "source": "labconsole/examples/replay_individual20.json",
+      "destination": "labconsole/examples/replay_individual20.json",
+      "source_sha256": "8769d916513c0f54bcfaffadc72e32dcea94bf4ab82d9c3846d8a8723eb44128",
+      "published_sha256": "7e6f08cffe3682855f979931c00565d77c66a2823344795735ae38b6c75341b1",
+      "adaptation": "remove personal paths; preserve measurements"
+    },
+    {
+      "source": "labconsole/examples/replay_nodes20.json",
+      "destination": "labconsole/examples/replay_nodes20.json",
+      "source_sha256": "da02b89552447aec76850ab5221b15bf4b23707d68061bd10ab3451ec225b7cb",
+      "published_sha256": "e50b5cc1d7e8b98a6a315f5d70c617bc18e36e26920d2ad55824c1897ad0fb83",
+      "adaptation": "remove personal paths; preserve measurements"
+    },
+    {
+      "source": "labconsole/examples/replay_power20.json",
+      "destination": "labconsole/examples/replay_power20.json",
+      "source_sha256": "75f18e23a8d0f72f3096cd79b0818e8fb6b829b081469dd415b4fc8ca00d1458",
+      "published_sha256": "6997760c44e26e9326382070588801d0fd0790b9012dfe385944b15df5f2a655",
+      "adaptation": "remove personal paths; preserve measurements"
+    },
+    {
+      "source": "labconsole/tests/test_console.py",
+      "destination": "labconsole/tests/test_console.py",
+      "source_sha256": "9a285f554daa632ff514e96bce4e15b8e472ff9ee77c738e7aae9df2e39aea12",
+      "published_sha256": "9a285f554daa632ff514e96bce4e15b8e472ff9ee77c738e7aae9df2e39aea12",
+      "adaptation": null
+    },
+    {
+      "source": "labconsole/tests/test_live.py",
+      "destination": "labconsole/tests/test_live.py",
+      "source_sha256": "6a202145e419ccaf7cc6dac38fc7e3ca870b493994242a4081180ba0b5cebb84",
+      "published_sha256": "6a202145e419ccaf7cc6dac38fc7e3ca870b493994242a4081180ba0b5cebb84",
+      "adaptation": null
+    },
+    {
+      "source": "labconsole/tests/test_replay.py",
+      "destination": "labconsole/tests/test_replay.py",
+      "source_sha256": "0969950dc26b5d2d195059f0cc2d2144724dd27190d7e385306116b074b1d223",
+      "published_sha256": "0969950dc26b5d2d195059f0cc2d2144724dd27190d7e385306116b074b1d223",
+      "adaptation": null
+    },
+    {
+      "source": "labconsole/tests/__init__.py",
+      "destination": "labconsole/tests/__init__.py",
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "published_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "adaptation": null
+    },
+    {
+      "source": "labconsole/web/app.js",
+      "destination": "labconsole/web/app.js",
+      "source_sha256": "3b046a2b9dc95790a77757378d3226e70f95dd37f01f45e77eef5a2d024ca762",
+      "published_sha256": "3b046a2b9dc95790a77757378d3226e70f95dd37f01f45e77eef5a2d024ca762",
+      "adaptation": null
+    },
+    {
+      "source": "labconsole/web/index.html",
+      "destination": "labconsole/web/index.html",
+      "source_sha256": "1dc9d1cea9f972e4273a0dd207cd165c9b6daa9282bcebe7e57245f77d9573c3",
+      "published_sha256": "1dc9d1cea9f972e4273a0dd207cd165c9b6daa9282bcebe7e57245f77d9573c3",
+      "adaptation": null
+    },
+    {
+      "source": "labconsole/web/live.js",
+      "destination": "labconsole/web/live.js",
+      "source_sha256": "9217da63ef727bdac517f8f04f118a002ec58b01fb1874c4fad1e5b54342f5d3",
+      "published_sha256": "9217da63ef727bdac517f8f04f118a002ec58b01fb1874c4fad1e5b54342f5d3",
+      "adaptation": null
+    },
+    {
+      "source": "labconsole/web/replay.js",
+      "destination": "labconsole/web/replay.js",
+      "source_sha256": "b471cd6e368317ca75d564886efacd583813163c29a84bbc2c89964b0e44b1c4",
+      "published_sha256": "b471cd6e368317ca75d564886efacd583813163c29a84bbc2c89964b0e44b1c4",
+      "adaptation": null
+    },
+    {
+      "source": "labconsole/web/style.css",
+      "destination": "labconsole/web/style.css",
+      "source_sha256": "3ad2403cb071c0f6139866d10a3c8967788ec680971f5eac54e6b65aa39f92a3",
+      "published_sha256": "3ad2403cb071c0f6139866d10a3c8967788ec680971f5eac54e6b65aa39f92a3",
+      "adaptation": null
+    },
+    {
+      "source": "start_console.py",
+      "destination": "start_console.py",
+      "source_sha256": "4a1e34b58bc422bbbf23a7bac4299dcbcd4147af9ca222d33f9afcf490445219",
+      "published_sha256": "4a1e34b58bc422bbbf23a7bac4299dcbcd4147af9ca222d33f9afcf490445219",
+      "adaptation": null
+    },
+    {
+      "source": "start_console.bat",
+      "destination": "start_console.bat",
+      "source_sha256": "a3979c4cd69016a1447c198592e414f037a1d3090ef8174d81ba85b3f249b345",
+      "published_sha256": "a3979c4cd69016a1447c198592e414f037a1d3090ef8174d81ba85b3f249b345",
+      "adaptation": null
+    },
+    {
+      "source": "experiments/air_timing.py",
+      "destination": "experiments/air_timing.py",
+      "source_sha256": "47c618d67f106624b2590d0f7fc0201d0684f2dc447d444f533d14eacd95b06d",
+      "published_sha256": "47c618d67f106624b2590d0f7fc0201d0684f2dc447d444f533d14eacd95b06d",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/air_timing_acceptance.py",
+      "destination": "experiments/air_timing_acceptance.py",
+      "source_sha256": "3f4272d7ab3f6bfff29c6e050305b911ab3b697f12cf64cd163ca815751944bb",
+      "published_sha256": "3f4272d7ab3f6bfff29c6e050305b911ab3b697f12cf64cd163ca815751944bb",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/analyze_bianchi_dai.py",
+      "destination": "experiments/analyze_bianchi_dai.py",
+      "source_sha256": "c3857c945070e49ec423049e3416cfca5d610288169f55e2bc0ebbc99cfb9379",
+      "published_sha256": "c3857c945070e49ec423049e3416cfca5d610288169f55e2bc0ebbc99cfb9379",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/analyze_cohort_sync.py",
+      "destination": "experiments/analyze_cohort_sync.py",
+      "source_sha256": "2732759b2a0c10d38a03f224c4359dd99f932ab943467e82d515514566d5fbc1",
+      "published_sha256": "28abd1fab8431d7c6ef2a1d6fc83293a6992221985e8d2a84bc88a12593d0f00",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/analyze_fifo_isolation.py",
+      "destination": "experiments/analyze_fifo_isolation.py",
+      "source_sha256": "3de9af302d9656e84f2bc191bf5b095880b7e7b065f7c4b8a68884125bee27c1",
+      "published_sha256": "3de9af302d9656e84f2bc191bf5b095880b7e7b065f7c4b8a68884125bee27c1",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/analyze_retry_audit.py",
+      "destination": "experiments/analyze_retry_audit.py",
+      "source_sha256": "c3f74ec08c46cfe7c99a8fda758ba7cf723aa28aae5171019647cc5003688bdd",
+      "published_sha256": "43aec4e29c0ed7d24ca7813a48be26aa576991d63455ac1922f43965f1e23ef5",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/analyze_retry_descriptors.py",
+      "destination": "experiments/analyze_retry_descriptors.py",
+      "source_sha256": "eaa89c4e7cf2f19c1acb76ba65d0be45c31e1b27b6663d95f2d632a96f46cb2e",
+      "published_sha256": "eaa89c4e7cf2f19c1acb76ba65d0be45c31e1b27b6663d95f2d632a96f46cb2e",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/analyze_sync.py",
+      "destination": "experiments/analyze_sync.py",
+      "source_sha256": "742b1e22b321512ec1984bb2ca6dfbf1ed9353913bc9638a59feaa13f88d0905",
+      "published_sha256": "742b1e22b321512ec1984bb2ca6dfbf1ed9353913bc9638a59feaa13f88d0905",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/audit_cohort_four.py",
+      "destination": "experiments/audit_cohort_four.py",
+      "source_sha256": "0765d9155cf5ba4cc656ecd65b576f397cc83ead2fa5a015a54483d5baf4fb72",
+      "published_sha256": "0765d9155cf5ba4cc656ecd65b576f397cc83ead2fa5a015a54483d5baf4fb72",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/audit_passive_single.py",
+      "destination": "experiments/audit_passive_single.py",
+      "source_sha256": "6533da67990383942093aa9794a8420345b08d9e7d60b96ffa45690fa7b17514",
+      "published_sha256": "6533da67990383942093aa9794a8420345b08d9e7d60b96ffa45690fa7b17514",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/bianchi_dai_probability.py",
+      "destination": "experiments/bianchi_dai_probability.py",
+      "source_sha256": "a59b4f817d8d46fb07b0644b94348677a2972ceb9b182cd76f4369f6023b3bc7",
+      "published_sha256": "a59b4f817d8d46fb07b0644b94348677a2972ceb9b182cd76f4369f6023b3bc7",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/bianchi_dai_theory.py",
+      "destination": "experiments/bianchi_dai_theory.py",
+      "source_sha256": "cf4114331356a32db3bf87866274bd121651e5817606cad036f5810b36d23e7e",
+      "published_sha256": "cf4114331356a32db3bf87866274bd121651e5817606cad036f5810b36d23e7e",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/cohort_node_capture.py",
+      "destination": "experiments/cohort_node_capture.py",
+      "source_sha256": "aaeba3453ac01231bc5ef2ef44554db7b7996add85d275a599bd40a71d631f8f",
+      "published_sha256": "aaeba3453ac01231bc5ef2ef44554db7b7996add85d275a599bd40a71d631f8f",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/cohort_probe_controller.py",
+      "destination": "experiments/cohort_probe_controller.py",
+      "source_sha256": "182cf12ffb5106501ae93a0774bc3d3cb0addd1359ea1de3da8f1dc2ae49af57",
+      "published_sha256": "182cf12ffb5106501ae93a0774bc3d3cb0addd1359ea1de3da8f1dc2ae49af57",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/cohort_trace.py",
+      "destination": "experiments/cohort_trace.py",
+      "source_sha256": "e239e146fec57a2bd28d6b5bc710ce5a7bb2bc28a6afbbc6c3d6699ac6b6f66e",
+      "published_sha256": "e239e146fec57a2bd28d6b5bc710ce5a7bb2bc28a6afbbc6c3d6699ac6b6f66e",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/continuous_ntp.py",
+      "destination": "experiments/continuous_ntp.py",
+      "source_sha256": "514fe2b5883ab11a1624d079ba5eaa7738711c38e466154c141d61bf97428ef3",
+      "published_sha256": "514fe2b5883ab11a1624d079ba5eaa7738711c38e466154c141d61bf97428ef3",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/dcf_compare.py",
+      "destination": "experiments/dcf_compare.py",
+      "source_sha256": "6d1014db4106ca5bff419399775660aad1ce136cfd469579eb3eca595d8cfe48",
+      "published_sha256": "6d1014db4106ca5bff419399775660aad1ce136cfd469579eb3eca595d8cfe48",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/individual_sta_summary.py",
+      "destination": "experiments/individual_sta_summary.py",
+      "source_sha256": "4ab1a50f543ef46b4b995f8276efe2facc0adbf9ea657cec1ba631d2ba5191fb",
+      "published_sha256": "4ab1a50f543ef46b4b995f8276efe2facc0adbf9ea657cec1ba631d2ba5191fb",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/listener_selection.py",
+      "destination": "experiments/listener_selection.py",
+      "source_sha256": "036a17defade85136834c5ec8e752533788ff75ec21faba98ad4d8afdec1a84b",
+      "published_sha256": "036a17defade85136834c5ec8e752533788ff75ec21faba98ad4d8afdec1a84b",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/passive_listener.py",
+      "destination": "experiments/passive_listener.py",
+      "source_sha256": "c1bdd4cd236dd8d7af23b5132257cbf7fbbee00a9eb4b764d3b113b2f21689db",
+      "published_sha256": "79a1821951cd0c877d82c60d2a8711fcb5d42a07c42431ec884dfc909f14d0ae",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/passive_listener_node.py",
+      "destination": "experiments/passive_listener_node.py",
+      "source_sha256": "07d83e066e5a1168496d387edc5cda864dfc7c96ca5de5c04de5a8ef0a83fb8d",
+      "published_sha256": "07d83e066e5a1168496d387edc5cda864dfc7c96ca5de5c04de5a8ef0a83fb8d",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/radio_plan.py",
+      "destination": "experiments/radio_plan.py",
+      "source_sha256": "2568e9606eb66419aa63ae616fb08cfb46c373d96fd3a19e0a4d5dcc31b8c359",
+      "published_sha256": "2568e9606eb66419aa63ae616fb08cfb46c373d96fd3a19e0a4d5dcc31b8c359",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/reg_access.py",
+      "destination": "experiments/reg_access.py",
+      "source_sha256": "42c6d0a0bcaf5f0bd944d0c92d02d60135d9d215a518ec25b6ab3289b3de48b7",
+      "published_sha256": "42c6d0a0bcaf5f0bd944d0c92d02d60135d9d215a518ec25b6ab3289b3de48b7",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/retry_audit.py",
+      "destination": "experiments/retry_audit.py",
+      "source_sha256": "a5b318f86824934977f0fcbe3012a060cf2deae62bae86456c340467e60bd455",
+      "published_sha256": "a8a26b74645e1f665c0460ab170ecd0ab60b3c38643575f0266e1f80ab15ce13",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/sender_selection.py",
+      "destination": "experiments/sender_selection.py",
+      "source_sha256": "e5aef4aa05c876226cfdd8b49289dbc8bc902645b4368ab0d758b09a958c2aa2",
+      "published_sha256": "e5aef4aa05c876226cfdd8b49289dbc8bc902645b4368ab0d758b09a958c2aa2",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/sync_node.py",
+      "destination": "experiments/sync_node.py",
+      "source_sha256": "c275c439413a95578ccf94354b8ae77bd2021b8e493cf22a373052086de0f02c",
+      "published_sha256": "c275c439413a95578ccf94354b8ae77bd2021b8e493cf22a373052086de0f02c",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/sync_run.py",
+      "destination": "experiments/sync_run.py",
+      "source_sha256": "c8b4fbb3fe353128fc1c5d4933416d923b737df09d3480160103237a364a3c2c",
+      "published_sha256": "aa5aaedde238c5a120f734b101bf9d79967fcc919e1fc4dc737f9e0580e90bb3",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/window_observation.py",
+      "destination": "experiments/window_observation.py",
+      "source_sha256": "4a92bc3edb66b984a00b17462eb7cb59d94eca2ce482c2827184bc35fa74630e",
+      "published_sha256": "4a92bc3edb66b984a00b17462eb7cb59d94eca2ce482c2827184bc35fa74630e",
+      "adaptation": "dependency extraction; reference network guard; historical home placeholders"
+    },
+    {
+      "source": "experiments/test_abort_workers.py",
+      "destination": "experiments/test_abort_workers.py",
+      "source_sha256": "dabb34c9e6bfbeff409659aec207938b4612365bc547f6523b50ff309f95f863",
+      "published_sha256": "dabb34c9e6bfbeff409659aec207938b4612365bc547f6523b50ff309f95f863",
+      "adaptation": "test placeholder; original import paths retained"
+    },
+    {
+      "source": "experiments/test_air_timing.py",
+      "destination": "experiments/test_air_timing.py",
+      "source_sha256": "3e6bc502537a4152db841d0765a69bc601042d07c1bc65271c62b2c739b14aea",
+      "published_sha256": "3e6bc502537a4152db841d0765a69bc601042d07c1bc65271c62b2c739b14aea",
+      "adaptation": "test placeholder; original import paths retained"
+    },
+    {
+      "source": "experiments/test_cohort_four_audit.py",
+      "destination": "experiments/test_cohort_four_audit.py",
+      "source_sha256": "028108ce8ae4dcde23b5d8d9fa83a08001e395b2f27d7a6879f9cfc320b32979",
+      "published_sha256": "028108ce8ae4dcde23b5d8d9fa83a08001e395b2f27d7a6879f9cfc320b32979",
+      "adaptation": "test placeholder; original import paths retained"
+    },
+    {
+      "source": "experiments/test_cohort_trace.py",
+      "destination": "experiments/test_cohort_trace.py",
+      "source_sha256": "402d4ab4a3209657a7ae83ebbb4dc41eaebaa4fee4377b8a4aa4e755f2e13b5b",
+      "published_sha256": "402d4ab4a3209657a7ae83ebbb4dc41eaebaa4fee4377b8a4aa4e755f2e13b5b",
+      "adaptation": "test placeholder; original import paths retained"
+    },
+    {
+      "source": "experiments/test_continuous_ntp.py",
+      "destination": "experiments/test_continuous_ntp.py",
+      "source_sha256": "7dd4d8d4b8320644ce6379760af74b526e41f2a1bcad5acbf02d6af71e8a968a",
+      "published_sha256": "7dd4d8d4b8320644ce6379760af74b526e41f2a1bcad5acbf02d6af71e8a968a",
+      "adaptation": "test placeholder; original import paths retained"
+    },
+    {
+      "source": "experiments/test_dcf.py",
+      "destination": "experiments/test_dcf.py",
+      "source_sha256": "6a8c4d4f58d0a5c9ecd55db5dfb2e3667cd13625f836df1a2775fdb45400bd5e",
+      "published_sha256": "6a8c4d4f58d0a5c9ecd55db5dfb2e3667cd13625f836df1a2775fdb45400bd5e",
+      "adaptation": "test placeholder; original import paths retained"
+    },
+    {
+      "source": "experiments/test_individual_sta_summary.py",
+      "destination": "experiments/test_individual_sta_summary.py",
+      "source_sha256": "87aad4afa8f170375fcfb9bea7ce09b9808d277b96a1dc17fabcaf97ebdcb4ff",
+      "published_sha256": "87aad4afa8f170375fcfb9bea7ce09b9808d277b96a1dc17fabcaf97ebdcb4ff",
+      "adaptation": "test placeholder; original import paths retained"
+    },
+    {
+      "source": "experiments/test_passive_listener.py",
+      "destination": "experiments/test_passive_listener.py",
+      "source_sha256": "8336eb15f7c61caa2d90fa1de25b7f054550557f5cfc931063f3a13b7de9cd28",
+      "published_sha256": "a9ddf52e9fee2542f81591a33818ca72f18be4407979fff6a731a50a744cf984",
+      "adaptation": "test placeholder; original import paths retained; publication documentation/compatibility cleanup"
+    },
+    {
+      "source": "experiments/test_passive_listener_node.py",
+      "destination": "experiments/test_passive_listener_node.py",
+      "source_sha256": "48958b6c9b5f2b0878f7edd88252bbde192948177b0a51a38f35141fccd4e9c1",
+      "published_sha256": "48958b6c9b5f2b0878f7edd88252bbde192948177b0a51a38f35141fccd4e9c1",
+      "adaptation": "test placeholder; original import paths retained"
+    },
+    {
+      "source": "experiments/test_passive_single_audit.py",
+      "destination": "experiments/test_passive_single_audit.py",
+      "source_sha256": "0f1b4f8a4af0e316ac2483ecf6d765e89599afb2b82f0755b080e0cc69bcc259",
+      "published_sha256": "0f1b4f8a4af0e316ac2483ecf6d765e89599afb2b82f0755b080e0cc69bcc259",
+      "adaptation": "test placeholder; original import paths retained"
+    },
+    {
+      "source": "experiments/test_power_expectation.py",
+      "destination": "experiments/test_power_expectation.py",
+      "source_sha256": "78c38f298cedf8d85d493b1395f294efab0ada4b87b2c2d043f63e402325f574",
+      "published_sha256": "78c38f298cedf8d85d493b1395f294efab0ada4b87b2c2d043f63e402325f574",
+      "adaptation": "test placeholder; original import paths retained"
+    },
+    {
+      "source": "experiments/test_radio_plan.py",
+      "destination": "experiments/test_radio_plan.py",
+      "source_sha256": "a21e43848b74a3ab39038793cc04cb9e94841fbdacb525571901056bef473f54",
+      "published_sha256": "a21e43848b74a3ab39038793cc04cb9e94841fbdacb525571901056bef473f54",
+      "adaptation": "test placeholder; original import paths retained"
+    },
+    {
+      "source": "experiments/test_reg_access.py",
+      "destination": "experiments/test_reg_access.py",
+      "source_sha256": "b552d4cc7b76428c78ef95b1d7fd1c8e548a6b6df8c46ed52d02f2f126048074",
+      "published_sha256": "b552d4cc7b76428c78ef95b1d7fd1c8e548a6b6df8c46ed52d02f2f126048074",
+      "adaptation": "test placeholder; original import paths retained"
+    },
+    {
+      "source": "experiments/test_remote_socket_path.py",
+      "destination": "experiments/test_remote_socket_path.py",
+      "source_sha256": "d95d293c1f6d98ea7a19d0a0c7689104826a84c01b89c0e506d6318381d062e7",
+      "published_sha256": "d95d293c1f6d98ea7a19d0a0c7689104826a84c01b89c0e506d6318381d062e7",
+      "adaptation": "test placeholder; original import paths retained"
+    },
+    {
+      "source": "experiments/test_retry_audit.py",
+      "destination": "experiments/test_retry_audit.py",
+      "source_sha256": "0ceab0919767ced1da77c20305f7f08fb8392be1e8ab3cece74eb618c242b9d3",
+      "published_sha256": "0ceab0919767ced1da77c20305f7f08fb8392be1e8ab3cece74eb618c242b9d3",
+      "adaptation": "test placeholder; original import paths retained"
+    },
+    {
+      "source": "experiments/test_sync.py",
+      "destination": "experiments/test_sync.py",
+      "source_sha256": "420243496baf9fdbac8b1cea302785ca87195fba0866844e4d60653f20ff34bc",
+      "published_sha256": "001b4acec22fa033616bf962103d08d0e8bbf5f9c179c7f3478215c9eb747469",
+      "adaptation": "test placeholder; original import paths retained; publication documentation/compatibility cleanup"
+    },
+    {
+      "source": "sta/app/Makefile",
+      "destination": "sta/app/Makefile",
+      "source_sha256": "361411f8fc86479f327d65f9186ae7344a2f633ef675a3555bafadad4cce9e31",
+      "published_sha256": "361411f8fc86479f327d65f9186ae7344a2f633ef675a3555bafadad4cce9e31",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/config/driver-bundle-5.15.0-139.json",
+      "destination": "sta/app/config/driver-bundle-5.15.0-139.json",
+      "source_sha256": "81904cffc95cbb3fd2a419ca1d2d4c01f036b3293d975939085d87fac219f55f",
+      "published_sha256": "81904cffc95cbb3fd2a419ca1d2d4c01f036b3293d975939085d87fac219f55f",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/config/hostapd-ath9k-collision-ch1.conf",
+      "destination": "sta/app/config/hostapd-ath9k-collision-ch1.conf",
+      "source_sha256": "1ece27f0f653b51f1d19339526ead693ad1357b88d4a1a9fd70d79d0242b52dd",
+      "published_sha256": "1ece27f0f653b51f1d19339526ead693ad1357b88d4a1a9fd70d79d0242b52dd",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/config/hostapd-ath9k-collision.conf",
+      "destination": "sta/app/config/hostapd-ath9k-collision.conf",
+      "source_sha256": "60301b401974357647dbba7d75195c238e70e07bbaf26fb68243a21add304173",
+      "published_sha256": "60301b401974357647dbba7d75195c238e70e07bbaf26fb68243a21add304173",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/config/hostapd-ath9k.conf",
+      "destination": "sta/app/config/hostapd-ath9k.conf",
+      "source_sha256": "3fd3df13cf1982d6907181f32e734071d3d8cc1c78ae02bf11c9bc766b2caa1c",
+      "published_sha256": "3fd3df13cf1982d6907181f32e734071d3d8cc1c78ae02bf11c9bc766b2caa1c",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/scripts/driver_persist.py",
+      "destination": "sta/app/scripts/driver_persist.py",
+      "source_sha256": "1a1be02feed6650552d598d5f26a271262655e88f9098726079cdd229f91d82c",
+      "published_sha256": "1a1be02feed6650552d598d5f26a271262655e88f9098726079cdd229f91d82c",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/scripts/start_dhcp.sh",
+      "destination": "sta/app/scripts/start_dhcp.sh",
+      "source_sha256": "f98fe95a406cbc985a5959f04497c7cbbef4bf12bb56c69b8bd51ceaf1790f03",
+      "published_sha256": "f98fe95a406cbc985a5959f04497c7cbbef4bf12bb56c69b8bd51ceaf1790f03",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/src/common.c",
+      "destination": "sta/app/src/common.c",
+      "source_sha256": "919e3bfbe179467846fc353b1332654ff6c589cbe3b6421f0608cd185868e26c",
+      "published_sha256": "919e3bfbe179467846fc353b1332654ff6c589cbe3b6421f0608cd185868e26c",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/src/common.h",
+      "destination": "sta/app/src/common.h",
+      "source_sha256": "574ec0cb4e8b6cf34776200621edde03b7b33be51d922fc0c4bdec33d01eda91",
+      "published_sha256": "574ec0cb4e8b6cf34776200621edde03b7b33be51d922fc0c4bdec33d01eda91",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/src/dhcp_ctrl.c",
+      "destination": "sta/app/src/dhcp_ctrl.c",
+      "source_sha256": "2adffcd837626816edcb123f20cf6667437321a738fd495e292d8667e85d1835",
+      "published_sha256": "2adffcd837626816edcb123f20cf6667437321a738fd495e292d8667e85d1835",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/src/dhcp_ctrl.h",
+      "destination": "sta/app/src/dhcp_ctrl.h",
+      "source_sha256": "e643376f6c844d3764b3f449ab719b1e10ae043f927cc9577c23608139ad387a",
+      "published_sha256": "e643376f6c844d3764b3f449ab719b1e10ae043f927cc9577c23608139ad387a",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/src/driver_ctrl.c",
+      "destination": "sta/app/src/driver_ctrl.c",
+      "source_sha256": "c03325d8cff5e1bbb17acb1ec00103e10e5efdcff9b0373d6453c49afc75291b",
+      "published_sha256": "c03325d8cff5e1bbb17acb1ec00103e10e5efdcff9b0373d6453c49afc75291b",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/src/driver_ctrl.h",
+      "destination": "sta/app/src/driver_ctrl.h",
+      "source_sha256": "4f540dd0b0b884e27bbe677bfc21e6741594fc28b9376e72064fdd0519b9afb3",
+      "published_sha256": "4f540dd0b0b884e27bbe677bfc21e6741594fc28b9376e72064fdd0519b9afb3",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/src/edca_ctrl.c",
+      "destination": "sta/app/src/edca_ctrl.c",
+      "source_sha256": "e379a4da1d586265c77b095b4ed76c537079f371d602cd7a45b892a5241be85b",
+      "published_sha256": "7b282e1a5fa5eb24c6e8d7d82920fc403a275ddd157bcd6e932371591cafcb1e",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/src/edca_ctrl.h",
+      "destination": "sta/app/src/edca_ctrl.h",
+      "source_sha256": "9f753df5167ace5e22b6a48a4a21674eab46151922ae28c078a25c253585caef",
+      "published_sha256": "9f753df5167ace5e22b6a48a4a21674eab46151922ae28c078a25c253585caef",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/src/hostapd_ctrl.c",
+      "destination": "sta/app/src/hostapd_ctrl.c",
+      "source_sha256": "4e2b3535fdb186a913dbbea7703ab322eccb870c75a6dce43dfd2b2e11e9eeaf",
+      "published_sha256": "4e2b3535fdb186a913dbbea7703ab322eccb870c75a6dce43dfd2b2e11e9eeaf",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/src/hostapd_ctrl.h",
+      "destination": "sta/app/src/hostapd_ctrl.h",
+      "source_sha256": "50f0ac1f5286237313d27116112ac9f5fa2923f904f5311be0905ca1247f7b00",
+      "published_sha256": "50f0ac1f5286237313d27116112ac9f5fa2923f904f5311be0905ca1247f7b00",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/src/main.c",
+      "destination": "sta/app/src/main.c",
+      "source_sha256": "29e11f84b4d8fc4b9cc642ef853910baa08f1c0650714c224f5cd6169a12e739",
+      "published_sha256": "29e11f84b4d8fc4b9cc642ef853910baa08f1c0650714c224f5cd6169a12e739",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/src/process.c",
+      "destination": "sta/app/src/process.c",
+      "source_sha256": "9e7c37194a4bb3ab8d12dba7956f70db2b4a353e6f777ebfbc82c5ab61a42a14",
+      "published_sha256": "9e7c37194a4bb3ab8d12dba7956f70db2b4a353e6f777ebfbc82c5ab61a42a14",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/src/process.h",
+      "destination": "sta/app/src/process.h",
+      "source_sha256": "f68fd40b20c84c8065ace87f23f9f0245d7e89a7aa8e8805b94e5e0a09b15bbe",
+      "published_sha256": "f68fd40b20c84c8065ace87f23f9f0245d7e89a7aa8e8805b94e5e0a09b15bbe",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/src/progress.c",
+      "destination": "sta/app/src/progress.c",
+      "source_sha256": "724702fcecbdc51163bc1e76250dc869c013be06782f05bb338df27add8a7d09",
+      "published_sha256": "724702fcecbdc51163bc1e76250dc869c013be06782f05bb338df27add8a7d09",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/src/progress.h",
+      "destination": "sta/app/src/progress.h",
+      "source_sha256": "899984986d3d50776dee29ba815fa79ae9d93aa15bc81a08014de2560c63f388",
+      "published_sha256": "899984986d3d50776dee29ba815fa79ae9d93aa15bc81a08014de2560c63f388",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/src/prompt.c",
+      "destination": "sta/app/src/prompt.c",
+      "source_sha256": "0219338c95f60554bde9a1e85178fd9314ad411194ce221b2cd916761eedac1d",
+      "published_sha256": "0219338c95f60554bde9a1e85178fd9314ad411194ce221b2cd916761eedac1d",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/src/prompt.h",
+      "destination": "sta/app/src/prompt.h",
+      "source_sha256": "a12623052408073f57c1579235f5ceb5133c582b756feb4cd4741d4db4f7bcb8",
+      "published_sha256": "a12623052408073f57c1579235f5ceb5133c582b756feb4cd4741d4db4f7bcb8",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/src/wifi_mode.c",
+      "destination": "sta/app/src/wifi_mode.c",
+      "source_sha256": "8b6a2b29b1928e9cce4518f1ac6b26d89e0df63f8f3a0ff3e01220f27c1c4acf",
+      "published_sha256": "8b6a2b29b1928e9cce4518f1ac6b26d89e0df63f8f3a0ff3e01220f27c1c4acf",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/src/wifi_mode.h",
+      "destination": "sta/app/src/wifi_mode.h",
+      "source_sha256": "0d0516398169f9430b1c9227f929e13bc7d7e8d8d638f5ebc14fd7fa5fa250a4",
+      "published_sha256": "0d0516398169f9430b1c9227f929e13bc7d7e8d8d638f5ebc14fd7fa5fa250a4",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/src/wifi_nm.c",
+      "destination": "sta/app/src/wifi_nm.c",
+      "source_sha256": "59ac0e572667a2db70fd87fdf95d8ca58a790d60cdae2a7c7146bf71c97b3cf6",
+      "published_sha256": "59ac0e572667a2db70fd87fdf95d8ca58a790d60cdae2a7c7146bf71c97b3cf6",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/src/wifi_nm.h",
+      "destination": "sta/app/src/wifi_nm.h",
+      "source_sha256": "b24d4e5c115856132f23bb1caae8ca7bd3e5d1853e3ae311c3df297a4fe0ebbf",
+      "published_sha256": "b24d4e5c115856132f23bb1caae8ca7bd3e5d1853e3ae311c3df297a4fe0ebbf",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/src/wifi_state.c",
+      "destination": "sta/app/src/wifi_state.c",
+      "source_sha256": "553107ab25bb1318116826ac3254deb90f414ad957a86cb734babd90349de282",
+      "published_sha256": "553107ab25bb1318116826ac3254deb90f414ad957a86cb734babd90349de282",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/src/wifi_state.h",
+      "destination": "sta/app/src/wifi_state.h",
+      "source_sha256": "cb5bdc13017f09610bfb101a2efc1434d234ff2146cc5a6a8ac8d904ab12f642",
+      "published_sha256": "cb5bdc13017f09610bfb101a2efc1434d234ff2146cc5a6a8ac8d904ab12f642",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/tests/test_driver_module_dir.c",
+      "destination": "sta/app/tests/test_driver_module_dir.c",
+      "source_sha256": "fbb550ecaa2161e4bd1cc36a79e95a7aadd3bb2e5694a906c0cd01850c6b8ea0",
+      "published_sha256": "fbb550ecaa2161e4bd1cc36a79e95a7aadd3bb2e5694a906c0cd01850c6b8ea0",
+      "adaptation": null
+    },
+    {
+      "source": "sta/app/tests/test_driver_persist.py",
+      "destination": "sta/app/tests/test_driver_persist.py",
+      "source_sha256": "57fd900128bb3abebfb34e2ef36110143a9ebed0f20103702ae1131e62a0755e",
+      "published_sha256": "57fd900128bb3abebfb34e2ef36110143a9ebed0f20103702ae1131e62a0755e",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/net/mac80211/tx.c",
+      "destination": "sta/driver/source/net/mac80211/tx.c",
+      "source_sha256": "4e1f503bb20acb07c00b22d5fbc1a0fbc4437413b201ffca7d7eaab1b09d78b5",
+      "published_sha256": "4e1f503bb20acb07c00b22d5fbc1a0fbc4437413b201ffca7d7eaab1b09d78b5",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/include/net/mac80211.h",
+      "destination": "sta/driver/source/include/net/mac80211.h",
+      "source_sha256": "2544374a672e5b0363f6d6735e6c2475b192f256420588821b3b447d62679bde",
+      "published_sha256": "2544374a672e5b0363f6d6735e6c2475b192f256420588821b3b447d62679bde",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ahb.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ahb.c",
+      "source_sha256": "001fbda8ac4a671cf39ec7d808bf8adca36a3307709615854ba624d35855f4b1",
+      "published_sha256": "001fbda8ac4a671cf39ec7d808bf8adca36a3307709615854ba624d35855f4b1",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ani.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ani.c",
+      "source_sha256": "db4ff8464619881a728f093daa347afa7edc8ee1c9bfeb2086f0ca95f34e5663",
+      "published_sha256": "db4ff8464619881a728f093daa347afa7edc8ee1c9bfeb2086f0ca95f34e5663",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ani.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ani.h",
+      "source_sha256": "9b943bb1384776036c202a4df164c33df1cdc66452a9088c825837feaa403910",
+      "published_sha256": "9b943bb1384776036c202a4df164c33df1cdc66452a9088c825837feaa403910",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/antenna.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/antenna.c",
+      "source_sha256": "4ab1655e201895aa02ab038b12362e890f61b84a4cf93f73cacf9073b74b4851",
+      "published_sha256": "4ab1655e201895aa02ab038b12362e890f61b84a4cf93f73cacf9073b74b4851",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9001_initvals.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9001_initvals.h",
+      "source_sha256": "dcc2010f8f111345ffa8cc3ba12975bb019a80e89983b4fa30aa1e66bfd98c52",
+      "published_sha256": "dcc2010f8f111345ffa8cc3ba12975bb019a80e89983b4fa30aa1e66bfd98c52",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9002_calib.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9002_calib.c",
+      "source_sha256": "60bdce0cd3292953436c589cf1a3382aeba6a7abbda2e8bd4bd68a22cab40b7e",
+      "published_sha256": "60bdce0cd3292953436c589cf1a3382aeba6a7abbda2e8bd4bd68a22cab40b7e",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9002_hw.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9002_hw.c",
+      "source_sha256": "c496078d0d0335eba20ebe032148ea67392605dada3672fbca81f5a667b96c10",
+      "published_sha256": "c496078d0d0335eba20ebe032148ea67392605dada3672fbca81f5a667b96c10",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9002_initvals.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9002_initvals.h",
+      "source_sha256": "22b38579721b9d99372b2fe932be55ea0a0d2b0d8f4404dd9828ad5b37593903",
+      "published_sha256": "22b38579721b9d99372b2fe932be55ea0a0d2b0d8f4404dd9828ad5b37593903",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9002_mac.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9002_mac.c",
+      "source_sha256": "87ea3744c05e8ea46b7a1ff8a9fd9510e58e1e5ed66966a2a08f3b7f93e5d7d6",
+      "published_sha256": "87ea3744c05e8ea46b7a1ff8a9fd9510e58e1e5ed66966a2a08f3b7f93e5d7d6",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9002_phy.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9002_phy.c",
+      "source_sha256": "ea82122443a5ab17eab77cc1e2ffa40038a2ac8e8fbcaf9734d91a09a7156d48",
+      "published_sha256": "ea82122443a5ab17eab77cc1e2ffa40038a2ac8e8fbcaf9734d91a09a7156d48",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9002_phy.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9002_phy.h",
+      "source_sha256": "d2cceaa4340087d8bd961f9704d4361d9e22e737d038076294f1b172deb8f5fd",
+      "published_sha256": "d2cceaa4340087d8bd961f9704d4361d9e22e737d038076294f1b172deb8f5fd",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_2p2_initvals.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_2p2_initvals.h",
+      "source_sha256": "845fb3d65a398f40deab795344a7d1d9588eb66c1b8d9c15d9632c899d05dfe2",
+      "published_sha256": "845fb3d65a398f40deab795344a7d1d9588eb66c1b8d9c15d9632c899d05dfe2",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_aic.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_aic.c",
+      "source_sha256": "0aac11e5a4e5629b99097da75361c7d9b9fd08d28ff7536aa56e8df823125c5e",
+      "published_sha256": "0aac11e5a4e5629b99097da75361c7d9b9fd08d28ff7536aa56e8df823125c5e",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_aic.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_aic.h",
+      "source_sha256": "003ac0277f254f9286f31fdae57b32cb7768a4d869266c557f906e8ff0805e79",
+      "published_sha256": "003ac0277f254f9286f31fdae57b32cb7768a4d869266c557f906e8ff0805e79",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_buffalo_initvals.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_buffalo_initvals.h",
+      "source_sha256": "35f54b765c2e74875d56bba22d70a9901f178b90a43456c92e88b0120bbbe1d6",
+      "published_sha256": "35f54b765c2e74875d56bba22d70a9901f178b90a43456c92e88b0120bbbe1d6",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_calib.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_calib.c",
+      "source_sha256": "7c78628ffe2f357bfcbdbd9c13be43d03e263364825a73ddef2b68d764c38566",
+      "published_sha256": "7c78628ffe2f357bfcbdbd9c13be43d03e263364825a73ddef2b68d764c38566",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_eeprom.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_eeprom.c",
+      "source_sha256": "c13a31a2a1c2864c3f35f3c449e92b37e7a6c2b76af5899d102d4af222b8a8d6",
+      "published_sha256": "c13a31a2a1c2864c3f35f3c449e92b37e7a6c2b76af5899d102d4af222b8a8d6",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_eeprom.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_eeprom.h",
+      "source_sha256": "1c6c07ba6f7b2c5b65ce935f88df2fc2d84537fe7e91dc5c48b7607a049cdd49",
+      "published_sha256": "1c6c07ba6f7b2c5b65ce935f88df2fc2d84537fe7e91dc5c48b7607a049cdd49",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_hw.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_hw.c",
+      "source_sha256": "0a4ef1d6c70615095b9405a0fed6aab77c8be6d0b65800e807722dc6602d7e1a",
+      "published_sha256": "0a4ef1d6c70615095b9405a0fed6aab77c8be6d0b65800e807722dc6602d7e1a",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_mac.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_mac.c",
+      "source_sha256": "ef7c9dfb0f589477c9c22b61f2371180f47b42b9b00091cd0092ff5916689bc3",
+      "published_sha256": "ef7c9dfb0f589477c9c22b61f2371180f47b42b9b00091cd0092ff5916689bc3",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_mac.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_mac.h",
+      "source_sha256": "47ada2b3a635aaf3cadb7b9f93bbff676da27bdc566e4a332124f21bbf0c7461",
+      "published_sha256": "47ada2b3a635aaf3cadb7b9f93bbff676da27bdc566e4a332124f21bbf0c7461",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_mci.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_mci.c",
+      "source_sha256": "7ca3654c9f8623376da95a0d7e9081f6fd1b2efe5c7886114f9da747df5f4b76",
+      "published_sha256": "7ca3654c9f8623376da95a0d7e9081f6fd1b2efe5c7886114f9da747df5f4b76",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_mci.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_mci.h",
+      "source_sha256": "9f56b2d337b797441f2eccdd5874dd9c65e5f9b44c60ae7b254bee3207c08aa5",
+      "published_sha256": "9f56b2d337b797441f2eccdd5874dd9c65e5f9b44c60ae7b254bee3207c08aa5",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_paprd.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_paprd.c",
+      "source_sha256": "674f261d8456b353303f4d1e537c4e6b7708c921b555d1aa0544f5ed8da5bcd5",
+      "published_sha256": "674f261d8456b353303f4d1e537c4e6b7708c921b555d1aa0544f5ed8da5bcd5",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_phy.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_phy.c",
+      "source_sha256": "99fea1f484e89a32e4d70bf097c83a3ce6b2b438622065898575f0de7f73bfc7",
+      "published_sha256": "99fea1f484e89a32e4d70bf097c83a3ce6b2b438622065898575f0de7f73bfc7",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_phy.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_phy.h",
+      "source_sha256": "370f38ccb412d61bf9a29803ac9e39c8b5b052d5f3cdb0bde5fda6185fe5f099",
+      "published_sha256": "370f38ccb412d61bf9a29803ac9e39c8b5b052d5f3cdb0bde5fda6185fe5f099",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_rtt.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_rtt.c",
+      "source_sha256": "16f8a114750848a80db2d8c6bca4b51a942d30706698c74830b8c20a8df7a29d",
+      "published_sha256": "16f8a114750848a80db2d8c6bca4b51a942d30706698c74830b8c20a8df7a29d",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_rtt.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_rtt.h",
+      "source_sha256": "b7f835874e216b1fab846b42e82c27f78d7f11dc007e263af130ad9135d23004",
+      "published_sha256": "b7f835874e216b1fab846b42e82c27f78d7f11dc007e263af130ad9135d23004",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_wow.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9003_wow.c",
+      "source_sha256": "fc843d9703c358ee39e3d2a493d416a1095d17fd26519b30fb4f843e65028100",
+      "published_sha256": "fc843d9703c358ee39e3d2a493d416a1095d17fd26519b30fb4f843e65028100",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9330_1p1_initvals.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9330_1p1_initvals.h",
+      "source_sha256": "79ce15d3984e50953cc8a438889c8e6ca3192a97efdd95d95bb74019ca3850c1",
+      "published_sha256": "79ce15d3984e50953cc8a438889c8e6ca3192a97efdd95d95bb74019ca3850c1",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9330_1p2_initvals.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9330_1p2_initvals.h",
+      "source_sha256": "c4df0779cc1a0a6a4dcd02cb674401ba148b10c496feb1006c15e407e8a07bde",
+      "published_sha256": "c4df0779cc1a0a6a4dcd02cb674401ba148b10c496feb1006c15e407e8a07bde",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9340_initvals.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9340_initvals.h",
+      "source_sha256": "157f2a6f916ea6c0a7c38faa95306a2ea21cfccbc2ce11bec4e2562130804752",
+      "published_sha256": "157f2a6f916ea6c0a7c38faa95306a2ea21cfccbc2ce11bec4e2562130804752",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9462_2p0_initvals.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9462_2p0_initvals.h",
+      "source_sha256": "639c60094731ad8e553e83a5f242f67e94d04a1c1a9c13818376a78030cea27e",
+      "published_sha256": "639c60094731ad8e553e83a5f242f67e94d04a1c1a9c13818376a78030cea27e",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9462_2p1_initvals.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9462_2p1_initvals.h",
+      "source_sha256": "3ffe768c6dd3dadad2a4adb8b09407c553e29ee5e51bf5b024abc2b8fdc038b2",
+      "published_sha256": "3ffe768c6dd3dadad2a4adb8b09407c553e29ee5e51bf5b024abc2b8fdc038b2",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9485_initvals.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9485_initvals.h",
+      "source_sha256": "2c7a5c081b29fc9e37ae5575e648d2c693b61b34eb2bf389cc2ecd0302107ede",
+      "published_sha256": "2c7a5c081b29fc9e37ae5575e648d2c693b61b34eb2bf389cc2ecd0302107ede",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar953x_initvals.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar953x_initvals.h",
+      "source_sha256": "1c49048af7189cd6d8bcc3fd61fbf85f34a7b4bd6b8049feed0b881938b2525a",
+      "published_sha256": "1c49048af7189cd6d8bcc3fd61fbf85f34a7b4bd6b8049feed0b881938b2525a",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar955x_1p0_initvals.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar955x_1p0_initvals.h",
+      "source_sha256": "ff35bc159e4aa9c5ff062ff1632eba5ff467029b4eedc8c92afda28729fa7792",
+      "published_sha256": "ff35bc159e4aa9c5ff062ff1632eba5ff467029b4eedc8c92afda28729fa7792",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9565_1p0_initvals.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9565_1p0_initvals.h",
+      "source_sha256": "86277aa458640d4f471f55e7e7591e5d272e3f4825c1c7993aba893107fb98b2",
+      "published_sha256": "86277aa458640d4f471f55e7e7591e5d272e3f4825c1c7993aba893107fb98b2",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9565_1p1_initvals.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9565_1p1_initvals.h",
+      "source_sha256": "62e86063e248e35523b6e8fd2b89027c7a20e3a5013c9acd4e6dd6ce72e8d175",
+      "published_sha256": "62e86063e248e35523b6e8fd2b89027c7a20e3a5013c9acd4e6dd6ce72e8d175",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar956x_initvals.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar956x_initvals.h",
+      "source_sha256": "6dd042ad54da0bf9ba9724e6475590ca529f7ebcda488c822e3e5abc90ca8a31",
+      "published_sha256": "6dd042ad54da0bf9ba9724e6475590ca529f7ebcda488c822e3e5abc90ca8a31",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9580_1p0_initvals.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ar9580_1p0_initvals.h",
+      "source_sha256": "c85f8f22ac4676f4794a2c1f68f227d28577f28792c26a638ffcface8f562c9d",
+      "published_sha256": "c85f8f22ac4676f4794a2c1f68f227d28577f28792c26a638ffcface8f562c9d",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ath9k.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ath9k.h",
+      "source_sha256": "9ad43d2326385d0cd8354b564b3ac41215626e368a75ea1df2de64a597272fa0",
+      "published_sha256": "9ad43d2326385d0cd8354b564b3ac41215626e368a75ea1df2de64a597272fa0",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/ath9k_pci_owl_loader.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/ath9k_pci_owl_loader.c",
+      "source_sha256": "bfa5dd3fe31331f4a2f172ab7c34cb740b6d61f03ac4a77459b9960b1b8cdbae",
+      "published_sha256": "bfa5dd3fe31331f4a2f172ab7c34cb740b6d61f03ac4a77459b9960b1b8cdbae",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/beacon.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/beacon.c",
+      "source_sha256": "22aa2c7cc530fdb9a578bdcfa099f4549d50c73033a46d44431c1c1b004294f1",
+      "published_sha256": "22aa2c7cc530fdb9a578bdcfa099f4549d50c73033a46d44431c1c1b004294f1",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/btcoex.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/btcoex.c",
+      "source_sha256": "6e9c2e45f9573e9a1baa9388f3977e899865f6a3cf748450a23c00a58d4935b2",
+      "published_sha256": "6e9c2e45f9573e9a1baa9388f3977e899865f6a3cf748450a23c00a58d4935b2",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/btcoex.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/btcoex.h",
+      "source_sha256": "8d725ef49597c12c3df7ae66b20d6635933f89b8457f7a4617d5ccb4429bdf94",
+      "published_sha256": "8d725ef49597c12c3df7ae66b20d6635933f89b8457f7a4617d5ccb4429bdf94",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/calib.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/calib.c",
+      "source_sha256": "1e924e7320017aa14a7120a9562f3167a059e02cfeb62083d0374b422e49ef72",
+      "published_sha256": "1e924e7320017aa14a7120a9562f3167a059e02cfeb62083d0374b422e49ef72",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/calib.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/calib.h",
+      "source_sha256": "f4316b58727cb50f7ce6d7c2ad827700a899cb329857c0d44b0e9f5e69d2121d",
+      "published_sha256": "f4316b58727cb50f7ce6d7c2ad827700a899cb329857c0d44b0e9f5e69d2121d",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/channel.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/channel.c",
+      "source_sha256": "67913427f48c412463ec35718539fa5929cc966f445e3a87ed9c87eec012ba42",
+      "published_sha256": "67913427f48c412463ec35718539fa5929cc966f445e3a87ed9c87eec012ba42",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/common-beacon.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/common-beacon.c",
+      "source_sha256": "d39f101f9de81d754905b205e16092166d2d76d24e26023801f05ee0534af00c",
+      "published_sha256": "d39f101f9de81d754905b205e16092166d2d76d24e26023801f05ee0534af00c",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/common-beacon.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/common-beacon.h",
+      "source_sha256": "bf87fb5df3675c990f03c4ee4f31465ed60af353f3ee29a447577fb69d5f1ffd",
+      "published_sha256": "bf87fb5df3675c990f03c4ee4f31465ed60af353f3ee29a447577fb69d5f1ffd",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/common-debug.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/common-debug.c",
+      "source_sha256": "81f8ee5215dbb3788cdc6e4fa28c729900143111ad28c75ebbe075015818a19d",
+      "published_sha256": "81f8ee5215dbb3788cdc6e4fa28c729900143111ad28c75ebbe075015818a19d",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/common-debug.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/common-debug.h",
+      "source_sha256": "9612357b96c9360622e1a5cca1599150dd6ffb362b816fc85b02ce1226e31223",
+      "published_sha256": "9612357b96c9360622e1a5cca1599150dd6ffb362b816fc85b02ce1226e31223",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/common-init.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/common-init.c",
+      "source_sha256": "087a0d90d0918d1a3b012292958492e2dc33a1ad843eb20808489b584e90d888",
+      "published_sha256": "087a0d90d0918d1a3b012292958492e2dc33a1ad843eb20808489b584e90d888",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/common-init.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/common-init.h",
+      "source_sha256": "2d48c8757be5bfc89504231bebffea6802f6b4eab15f6e3899ea77b8a0ad3409",
+      "published_sha256": "2d48c8757be5bfc89504231bebffea6802f6b4eab15f6e3899ea77b8a0ad3409",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/common-spectral.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/common-spectral.c",
+      "source_sha256": "255b1e06795623b820135f73f1aea6620b236bfaa150d74fb82de17c98030109",
+      "published_sha256": "255b1e06795623b820135f73f1aea6620b236bfaa150d74fb82de17c98030109",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/common-spectral.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/common-spectral.h",
+      "source_sha256": "35c04c5ba08216ce26087e2cbf52ed0d937da6e6f5501d9e55a5454940064e30",
+      "published_sha256": "35c04c5ba08216ce26087e2cbf52ed0d937da6e6f5501d9e55a5454940064e30",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/common.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/common.c",
+      "source_sha256": "10e4c464733608e1982847eef6eb5e749222b84dd434488da59d8b1ca2edf96e",
+      "published_sha256": "10e4c464733608e1982847eef6eb5e749222b84dd434488da59d8b1ca2edf96e",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/common.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/common.h",
+      "source_sha256": "ea198924e1fbf8b923e0f7b67bca09ac276e89db5101191038afef91ea966562",
+      "published_sha256": "ea198924e1fbf8b923e0f7b67bca09ac276e89db5101191038afef91ea966562",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/dcf_math.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/dcf_math.h",
+      "source_sha256": "921323a8f3ae779edb8ce2ea479ff98e679a32b08e560f9b7828119701d4ccb3",
+      "published_sha256": "921323a8f3ae779edb8ce2ea479ff98e679a32b08e560f9b7828119701d4ccb3",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/debug.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/debug.c",
+      "source_sha256": "4dd238050913f41d4db1385ce93b52273f5ffefa30a124b7517a19a15f4cc3f7",
+      "published_sha256": "4dd238050913f41d4db1385ce93b52273f5ffefa30a124b7517a19a15f4cc3f7",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/debug.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/debug.h",
+      "source_sha256": "07c000a003a4be67fc7f02e9f45d94bd691db7def53bb1b216e8e108f10dadba",
+      "published_sha256": "07c000a003a4be67fc7f02e9f45d94bd691db7def53bb1b216e8e108f10dadba",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/debug_sta.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/debug_sta.c",
+      "source_sha256": "a28ba84863b94a30c926ec3ce3476ebeb0b305e537486456e5b14743757ba1d6",
+      "published_sha256": "a28ba84863b94a30c926ec3ce3476ebeb0b305e537486456e5b14743757ba1d6",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/dfs.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/dfs.c",
+      "source_sha256": "9cec751f86bc75582d11b29fbde2bdbbf43c56bc2b20e7e38b91feb998d431f5",
+      "published_sha256": "9cec751f86bc75582d11b29fbde2bdbbf43c56bc2b20e7e38b91feb998d431f5",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/dfs.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/dfs.h",
+      "source_sha256": "63a306761f00cfc44a2baddc9f142401a0807a511be0f3d3a6ff08186b9214a3",
+      "published_sha256": "63a306761f00cfc44a2baddc9f142401a0807a511be0f3d3a6ff08186b9214a3",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/dfs_debug.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/dfs_debug.c",
+      "source_sha256": "0194f02213fb9033f8ee572180708490bf192943afa087ba9147b81e663c76d4",
+      "published_sha256": "0194f02213fb9033f8ee572180708490bf192943afa087ba9147b81e663c76d4",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/dfs_debug.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/dfs_debug.h",
+      "source_sha256": "37b52558a33eee2bc259fa4995f9dc30a3cb11d3f5bf8b81e3d86cf6186ada57",
+      "published_sha256": "37b52558a33eee2bc259fa4995f9dc30a3cb11d3f5bf8b81e3d86cf6186ada57",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/dynack.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/dynack.c",
+      "source_sha256": "f7d069174ecd715f927bcf7d3c8ea8d5256c2abc0c5341f4a10366b22e6b35ad",
+      "published_sha256": "f7d069174ecd715f927bcf7d3c8ea8d5256c2abc0c5341f4a10366b22e6b35ad",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/dynack.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/dynack.h",
+      "source_sha256": "8a21e914492505b4502b488dbdce6d170952f858c6b98bc33e8e31b5633d298e",
+      "published_sha256": "8a21e914492505b4502b488dbdce6d170952f858c6b98bc33e8e31b5633d298e",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/eeprom.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/eeprom.c",
+      "source_sha256": "5e85ab8201eb9212cfe16ef4caa5e89a3a984e00080bb75040070f2209bdabb7",
+      "published_sha256": "5e85ab8201eb9212cfe16ef4caa5e89a3a984e00080bb75040070f2209bdabb7",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/eeprom.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/eeprom.h",
+      "source_sha256": "83f1c8d2683e23680ff549a761c6884a8c437b08316eefce041a2791f7daa573",
+      "published_sha256": "83f1c8d2683e23680ff549a761c6884a8c437b08316eefce041a2791f7daa573",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/eeprom_4k.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/eeprom_4k.c",
+      "source_sha256": "47d9006f7ebb9901e1420753e22c152a8b6941227b938fa1cd9404323226a3f1",
+      "published_sha256": "47d9006f7ebb9901e1420753e22c152a8b6941227b938fa1cd9404323226a3f1",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/eeprom_9287.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/eeprom_9287.c",
+      "source_sha256": "4a5abadc56291c82378593804f592aaca72df9ba2b5230155af215587663f968",
+      "published_sha256": "4a5abadc56291c82378593804f592aaca72df9ba2b5230155af215587663f968",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/eeprom_def.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/eeprom_def.c",
+      "source_sha256": "85cacd1920a1217a13750d333e7512feda68438df1a33ea7d443e596e31ffbea",
+      "published_sha256": "85cacd1920a1217a13750d333e7512feda68438df1a33ea7d443e596e31ffbea",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/gpio.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/gpio.c",
+      "source_sha256": "c831a7869387dd26506ec59b0773396795ead6352e6cadbe568147cc68d6b59f",
+      "published_sha256": "c831a7869387dd26506ec59b0773396795ead6352e6cadbe568147cc68d6b59f",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/hif_usb.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/hif_usb.c",
+      "source_sha256": "9dd24dd6479b530521c5db0dfd10f592c9f12fae32928b56b701e8034b482450",
+      "published_sha256": "9dd24dd6479b530521c5db0dfd10f592c9f12fae32928b56b701e8034b482450",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/hif_usb.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/hif_usb.h",
+      "source_sha256": "d54943e5c825595e17571e3a837a129649f0c444aa03a054d2d17ee06d4e6fbe",
+      "published_sha256": "d54943e5c825595e17571e3a837a129649f0c444aa03a054d2d17ee06d4e6fbe",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/htc.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/htc.h",
+      "source_sha256": "8eea3017265f246c50b36ad9a1430900ee76358352b9bb7fa85ba3bb98ac1dd8",
+      "published_sha256": "8eea3017265f246c50b36ad9a1430900ee76358352b9bb7fa85ba3bb98ac1dd8",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/htc_drv_beacon.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/htc_drv_beacon.c",
+      "source_sha256": "9afd51c77b748532cc05bfc28b6915dc4642999029ff03f058a3d96e94d7aeb0",
+      "published_sha256": "9afd51c77b748532cc05bfc28b6915dc4642999029ff03f058a3d96e94d7aeb0",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/htc_drv_debug.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/htc_drv_debug.c",
+      "source_sha256": "7f8b088f40c4f92d3088a21d0d0feba2276a271d905d071fa399aa2d5559053f",
+      "published_sha256": "7f8b088f40c4f92d3088a21d0d0feba2276a271d905d071fa399aa2d5559053f",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/htc_drv_gpio.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/htc_drv_gpio.c",
+      "source_sha256": "18ec4421a4b5f02117b0f1ab96319c75631b41e34220a1ff43d971a5bc1acd2a",
+      "published_sha256": "18ec4421a4b5f02117b0f1ab96319c75631b41e34220a1ff43d971a5bc1acd2a",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/htc_drv_init.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/htc_drv_init.c",
+      "source_sha256": "ade495c8818a95b06b2f32d35d76ef528df2e465ad19ba2a648b18fa4c5207e6",
+      "published_sha256": "ade495c8818a95b06b2f32d35d76ef528df2e465ad19ba2a648b18fa4c5207e6",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/htc_drv_main.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/htc_drv_main.c",
+      "source_sha256": "c4b2b1e872902fcfb9dae5eadb735dc8324ded6a4c0cd5fe2889e59b6f88cad8",
+      "published_sha256": "c4b2b1e872902fcfb9dae5eadb735dc8324ded6a4c0cd5fe2889e59b6f88cad8",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/htc_drv_txrx.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/htc_drv_txrx.c",
+      "source_sha256": "768108278a8302517f1301c0e7e2ddbd9605a10cb38cf1c3866acb3a31664c71",
+      "published_sha256": "768108278a8302517f1301c0e7e2ddbd9605a10cb38cf1c3866acb3a31664c71",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/htc_hst.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/htc_hst.c",
+      "source_sha256": "a67c1ce93220168e6610bb2d01884c22fa7d72bfd5fcb77909070e397654ff45",
+      "published_sha256": "a67c1ce93220168e6610bb2d01884c22fa7d72bfd5fcb77909070e397654ff45",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/htc_hst.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/htc_hst.h",
+      "source_sha256": "4ebcb05967ff00c48767279b55d1b8acf53ede304137febbb4a1815b9a68cdcf",
+      "published_sha256": "4ebcb05967ff00c48767279b55d1b8acf53ede304137febbb4a1815b9a68cdcf",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/hw-ops.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/hw-ops.h",
+      "source_sha256": "5c283a0ef8e9c06e59ff123b45127a3c38ac29e811766a4ede178aa47837f710",
+      "published_sha256": "5c283a0ef8e9c06e59ff123b45127a3c38ac29e811766a4ede178aa47837f710",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/hw.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/hw.c",
+      "source_sha256": "5e12a13039eb1b663097645522df66c3a9b9c7b5b72a64fc857ca8a5724c0069",
+      "published_sha256": "5e12a13039eb1b663097645522df66c3a9b9c7b5b72a64fc857ca8a5724c0069",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/hw.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/hw.h",
+      "source_sha256": "8bf1cfb17be56654145acf8ae7e48c7a9ab1f3715036ff15f74e2b9d63b93625",
+      "published_sha256": "8bf1cfb17be56654145acf8ae7e48c7a9ab1f3715036ff15f74e2b9d63b93625",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/init.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/init.c",
+      "source_sha256": "69b6cb221bc999bc828433e0d3fe5b2d2432d97d2ee4a037ee7a191f317b6995",
+      "published_sha256": "69b6cb221bc999bc828433e0d3fe5b2d2432d97d2ee4a037ee7a191f317b6995",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/Kconfig",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/Kconfig",
+      "source_sha256": "6f5a808d795994e58a507387bbd46cfb36bec4e720b2eb9480d9578b0ff0b9dd",
+      "published_sha256": "6f5a808d795994e58a507387bbd46cfb36bec4e720b2eb9480d9578b0ff0b9dd",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/link.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/link.c",
+      "source_sha256": "5c4d3a73da811688fd2762d758147a278d1df41fa642beb4306324e23f334a48",
+      "published_sha256": "5c4d3a73da811688fd2762d758147a278d1df41fa642beb4306324e23f334a48",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/mac.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/mac.c",
+      "source_sha256": "35715aac3f1703a612eac73d49e1b44bfb59934c51eea4fec0fb2e67ba457f7a",
+      "published_sha256": "35715aac3f1703a612eac73d49e1b44bfb59934c51eea4fec0fb2e67ba457f7a",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/mac.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/mac.h",
+      "source_sha256": "8adf08b2a3ce5c95e3ecf4e6b18cef975b149e7274a2432ff2d4a0fd6c7e25b7",
+      "published_sha256": "8adf08b2a3ce5c95e3ecf4e6b18cef975b149e7274a2432ff2d4a0fd6c7e25b7",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/main.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/main.c",
+      "source_sha256": "6a55069985b6c3d91486784d0c391116f5dd503bf94015a8808afe696caec503",
+      "published_sha256": "6a55069985b6c3d91486784d0c391116f5dd503bf94015a8808afe696caec503",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/Makefile",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/Makefile",
+      "source_sha256": "761de9bc941362a64c919bb4ed6da1408b3b28d9c9f2ce8dba847c60140cae5c",
+      "published_sha256": "761de9bc941362a64c919bb4ed6da1408b3b28d9c9f2ce8dba847c60140cae5c",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/mci.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/mci.c",
+      "source_sha256": "f35ddeecda0bf14856763dfa33e1894fdeab35baa722077499c6668047484829",
+      "published_sha256": "f35ddeecda0bf14856763dfa33e1894fdeab35baa722077499c6668047484829",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/mci.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/mci.h",
+      "source_sha256": "5506e4713cc4078e50f3bb6d8070aec4db19d765d7c8511e1f8c0fd960edae17",
+      "published_sha256": "5506e4713cc4078e50f3bb6d8070aec4db19d765d7c8511e1f8c0fd960edae17",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/pci.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/pci.c",
+      "source_sha256": "5abd71085ea42b2453f1e64f4fe69f5e7d675bc44dacd32cf966e23931e922b4",
+      "published_sha256": "5abd71085ea42b2453f1e64f4fe69f5e7d675bc44dacd32cf966e23931e922b4",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/phy.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/phy.h",
+      "source_sha256": "edab45a51cfa37c1226a90d59d1f7474a65758802518b0d00f6e34fd93ddddf2",
+      "published_sha256": "edab45a51cfa37c1226a90d59d1f7474a65758802518b0d00f6e34fd93ddddf2",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/recv.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/recv.c",
+      "source_sha256": "a5f124122dd9f44d81a07c2a1a7f6430a2aa564480462c97e96a3e51650309ea",
+      "published_sha256": "a5f124122dd9f44d81a07c2a1a7f6430a2aa564480462c97e96a3e51650309ea",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/reg.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/reg.h",
+      "source_sha256": "4c47b05ce94a523a1919bbdf0cd8e1e541a4a1e0a0ea749341a6ccc87c3ab652",
+      "published_sha256": "4c47b05ce94a523a1919bbdf0cd8e1e541a4a1e0a0ea749341a6ccc87c3ab652",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/reg_aic.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/reg_aic.h",
+      "source_sha256": "3d47eaa0a9ac0bed777cfac705fd729d23f82ca65da130516c5f787bc410c755",
+      "published_sha256": "3d47eaa0a9ac0bed777cfac705fd729d23f82ca65da130516c5f787bc410c755",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/reg_mci.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/reg_mci.h",
+      "source_sha256": "11bc4e2a71f93d951fbad7040b76dddceecdb699263f9bd9ce61bd98a1bf5b73",
+      "published_sha256": "11bc4e2a71f93d951fbad7040b76dddceecdb699263f9bd9ce61bd98a1bf5b73",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/reg_wow.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/reg_wow.h",
+      "source_sha256": "d8d7f4bfa3684905a8a8f84eb78279351610ada90407b8d917504f2ec84314ad",
+      "published_sha256": "d8d7f4bfa3684905a8a8f84eb78279351610ada90407b8d917504f2ec84314ad",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/rng.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/rng.c",
+      "source_sha256": "88f2434fc417b589c0fd03026ffabbeb21d99e5d95e6de5e7f28fc6f3d949d62",
+      "published_sha256": "88f2434fc417b589c0fd03026ffabbeb21d99e5d95e6de5e7f28fc6f3d949d62",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/tx99.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/tx99.c",
+      "source_sha256": "b886027076a3e3b9d055544c9a0192d0fb50324bde9091d31cd143ab84cc9f70",
+      "published_sha256": "b886027076a3e3b9d055544c9a0192d0fb50324bde9091d31cd143ab84cc9f70",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/wmi.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/wmi.c",
+      "source_sha256": "bb0739fee709795f0be0573fd8c684edae02bfa22e2705c120bda21054b50ac8",
+      "published_sha256": "bb0739fee709795f0be0573fd8c684edae02bfa22e2705c120bda21054b50ac8",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/wmi.h",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/wmi.h",
+      "source_sha256": "525a87049d3b791bc7ddc5f54b4a48bd33c99163971dd422bc587daa72bb6325",
+      "published_sha256": "525a87049d3b791bc7ddc5f54b4a48bd33c99163971dd422bc587daa72bb6325",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/wow.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/wow.c",
+      "source_sha256": "7de938e3da7f2701eb1a259ea085c8f6aac3b57be85483c0583b910b098ca8dc",
+      "published_sha256": "7de938e3da7f2701eb1a259ea085c8f6aac3b57be85483c0583b910b098ca8dc",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/source/drivers/net/wireless/ath/ath9k/xmit.c",
+      "destination": "sta/driver/source/drivers/net/wireless/ath/ath9k/xmit.c",
+      "source_sha256": "7d32f8d557015f932783be7e0b825020944b35ccfb02f1931922fcfe6a97c98c",
+      "published_sha256": "7d32f8d557015f932783be7e0b825020944b35ccfb02f1931922fcfe6a97c98c",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/patches/ath9k-basic-access-06.patch",
+      "destination": "sta/driver/patches/ath9k-basic-access-06.patch",
+      "source_sha256": "f55d6d1cf5de8811b38ce9c02d51f21d9c01c3ff5ae1f5013a65b2db7bf8755a",
+      "published_sha256": "f55d6d1cf5de8811b38ce9c02d51f21d9c01c3ff5ae1f5013a65b2db7bf8755a",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/patches/ath9k-basic-retry-07.patch",
+      "destination": "sta/driver/patches/ath9k-basic-retry-07.patch",
+      "source_sha256": "308d8c8bce4af3bd8935c7e19a11d007af287cca8f947a5115792ad5a8841041",
+      "published_sha256": "308d8c8bce4af3bd8935c7e19a11d007af287cca8f947a5115792ad5a8841041",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/patches/ath9k-dcf-hotpath-03.patch",
+      "destination": "sta/driver/patches/ath9k-dcf-hotpath-03.patch",
+      "source_sha256": "950844878c224096d8e658740a9a234f271f15e33a54881c61fb5271ed342010",
+      "published_sha256": "950844878c224096d8e658740a9a234f271f15e33a54881c61fb5271ed342010",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/patches/ath9k-dcf-measurement-02.patch",
+      "destination": "sta/driver/patches/ath9k-dcf-measurement-02.patch",
+      "source_sha256": "c49bb8accd45860fadc51132373964dfc2762eef85754483cd7150f536835f39",
+      "published_sha256": "c49bb8accd45860fadc51132373964dfc2762eef85754483cd7150f536835f39",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/patches/ath9k-edca-control.patch",
+      "destination": "sta/driver/patches/ath9k-edca-control.patch",
+      "source_sha256": "f2e78ca421765c6e2e397e3486f305e05aba866565fea0793b25871e5601fd5c",
+      "published_sha256": "f2e78ca421765c6e2e397e3486f305e05aba866565fea0793b25871e5601fd5c",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/patches/ath9k-edca-experiment-full.patch",
+      "destination": "sta/driver/patches/ath9k-edca-experiment-full.patch",
+      "source_sha256": "a701176c7cb1748eafa2db2fb68d4beb2876ec04b7c38762df2af4559b04a09f",
+      "published_sha256": "a701176c7cb1748eafa2db2fb68d4beb2876ec04b7c38762df2af4559b04a09f",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/patches/ath9k-hol-service-04.patch",
+      "destination": "sta/driver/patches/ath9k-hol-service-04.patch",
+      "source_sha256": "8589d57f5439f49ebd1dff2905d2ab73ab724a97059a6f116155a59f3320682d",
+      "published_sha256": "8589d57f5439f49ebd1dff2905d2ab73ab724a97059a6f116155a59f3320682d",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/patches/ath9k-hol-txq-fix-05.patch",
+      "destination": "sta/driver/patches/ath9k-hol-txq-fix-05.patch",
+      "source_sha256": "8da442b0c1a0a461006ec4166edee8649c0793442c97150a3a75539467cf80ba",
+      "published_sha256": "8da442b0c1a0a461006ec4166edee8649c0793442c97150a3a75539467cf80ba",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/patches/series",
+      "destination": "sta/driver/patches/series",
+      "source_sha256": "1e4391d086b8867690130692125bd14aebd4855c095b646c8910777b0150419a",
+      "published_sha256": "1e4391d086b8867690130692125bd14aebd4855c095b646c8910777b0150419a",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/tests/basic_retry_math.c",
+      "destination": "sta/driver/tests/basic_retry_math.c",
+      "source_sha256": "377228765ec0c8c2738a2be33bdfa6b176b371bc1d924f4a6cd6a980588c63e2",
+      "published_sha256": "377228765ec0c8c2738a2be33bdfa6b176b371bc1d924f4a6cd6a980588c63e2",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/tests/shim/linux/types.h",
+      "destination": "sta/driver/tests/shim/linux/types.h",
+      "source_sha256": "099976f64ba4ae6c41af8be55057a512bd469a4292bf76de3715e2a9c9196311",
+      "published_sha256": "099976f64ba4ae6c41af8be55057a512bd469a4292bf76de3715e2a9c9196311",
+      "adaptation": null
+    },
+    {
+      "source": "sta/docs/architecture.md",
+      "destination": "sta/docs/architecture.md",
+      "source_sha256": "813503c810e7e49dd50485b5a0bcbfe05bb1e6c594871b3ca10e945ae8ddff50",
+      "published_sha256": "1f0e4ede2fad394538301cd84b71850d38fbbed0475a8ac47822bb4dc9883686",
+      "adaptation": null
+    },
+    {
+      "source": "sta/docs/compatibility.md",
+      "destination": "sta/docs/compatibility.md",
+      "source_sha256": "29d1c08be52c148922be24a8c39fc91edce2b38d9b6a3f4800b196abc5313d51",
+      "published_sha256": "0b8e130b06fb5d8deb741903bbcd3549f90c420bb9f32c0fe5a4f0dff4b44ecc",
+      "adaptation": null
+    },
+    {
+      "source": "sta/docs/development-workflow.md",
+      "destination": "sta/docs/development-workflow.md",
+      "source_sha256": "ec7ae19ec23b5e4c372c3fe890faaf3b8bf3d24f0af7e3b5df9fd363716ffae3",
+      "published_sha256": "f9c5a45964c5f74000d2e5a045493760c117bcbb0f285a6ff0b7688da09ea1d2",
+      "adaptation": null
+    },
+    {
+      "source": "sta/docs/driver-interface.md",
+      "destination": "sta/docs/driver-interface.md",
+      "source_sha256": "a8f2ee1f8fc4f9b389287c12a7601431ded361334b52c7bc2f0b86a36c0c71a4",
+      "published_sha256": "91c4d7b12c41deba60fe84cee188a8f805c697116e3e6da87e9b755c5c4230cb",
+      "adaptation": null
+    },
+    {
+      "source": "sta/docs/driver-persistence.md",
+      "destination": "sta/docs/driver-persistence.md",
+      "source_sha256": "a63490a69429a18b83352be89c3b1f732ab157ea729867c8c2b1c02e63c9aae7",
+      "published_sha256": "a63490a69429a18b83352be89c3b1f732ab157ea729867c8c2b1c02e63c9aae7",
+      "adaptation": "; publication documentation/compatibility cleanup"
+    },
+    {
+      "source": "sta/docs/safety.md",
+      "destination": "sta/docs/safety.md",
+      "source_sha256": "a23d10785532e7eb5bf1f2a6fd74b238babf5f5cfe01fb6cff877afcdb374468",
+      "published_sha256": "250f226f21bcac44572ce07c7ce22af17ec2736980d02915018e083b72c8bc01",
+      "adaptation": null
+    },
+    {
+      "source": "sta/docs/应用程序使用指南.md",
+      "destination": "sta/docs/应用程序使用指南.md",
+      "source_sha256": "cc29d4eaf3678aa32ffd2637ba0a30f22d075ea786bf51dea09c88976fca8962",
+      "published_sha256": "cc29d4eaf3678aa32ffd2637ba0a30f22d075ea786bf51dea09c88976fca8962",
+      "adaptation": null
+    },
+    {
+      "source": "sta/tools/dcf_stats.py",
+      "destination": "sta/tools/dcf_stats.py",
+      "source_sha256": "9d5cda5d8be8cefc6e2f2518a98275af9993d66500c6676fe545f1c234c66323",
+      "published_sha256": "9d5cda5d8be8cefc6e2f2518a98275af9993d66500c6676fe545f1c234c66323",
+      "adaptation": null
+    },
+    {
+      "source": "sta/tools/tests/test_dcf_stats.py",
+      "destination": "sta/tools/tests/test_dcf_stats.py",
+      "source_sha256": "cd7fca67965e34fdb0cfffe5c8ca2f81fbe4b8684d0e915d1bd0f0b9b68341cb",
+      "published_sha256": "cd7fca67965e34fdb0cfffe5c8ca2f81fbe4b8684d0e915d1bd0f0b9b68341cb",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/COPYING",
+      "destination": "sta/driver/COPYING",
+      "source_sha256": "fb5a425bd3b3cd6071a3a9aff9909a859e7c1158d54d32e07658398cd67eb6a0",
+      "published_sha256": "fb5a425bd3b3cd6071a3a9aff9909a859e7c1158d54d32e07658398cd67eb6a0",
+      "adaptation": null
+    },
+    {
+      "source": "sta/driver/07-basic-retry.md",
+      "destination": "sta/driver/07-basic-retry.md",
+      "source_sha256": "0e461ad8f362331dabcabd361920d19ee97c4eada394650628587b57a2be757d",
+      "published_sha256": "11a1510feeb33cddc71b507bd59224318957c956f5cfb815814c092958123c4b",
+      "adaptation": "; publication documentation/compatibility cleanup"
+    },
+    {
+      "source": "sta/LICENSE.md",
+      "destination": "LICENSES/ORIGINAL_APPLICATION_NOTICE.md",
+      "source_sha256": "648ca40d66ed8d5052fcf6844c26b6f19fff2af9443b4b6b5ab2889c0a28e4f6",
+      "published_sha256": "b7fc158f25eac3d535c8b926682e32ccee105fd7b6197b9809eb006c6f315fdf",
+      "adaptation": null
+    }
+  ],
+  "excluded_files": [
+    "labconsole\\README.md",
+    "labconsole\\verify_existing.py",
+    "labconsole\\tests\\test_live_render.js",
+    "experiments\\test_bianchi_dai.py",
+    "experiments\\test_cohort_control_rates.py",
+    "experiments\\test_cohort_report.py",
+    "experiments\\test_cohort_sync_analysis.py",
+    "experiments\\test_fifo_repair.py",
+    "experiments\\test_final_platform_summary.py",
+    "experiments\\test_idle_association.py",
+    "experiments\\test_probability_boundary.py",
+    "experiments\\test_record_run.py",
+    "experiments\\test_retry_descriptors.py",
+    "experiments\\test_sender_selection.py",
+    "experiments\\test_single_sender.py",
+    "experiments\\test_single_series_aba.py",
+    "experiments\\test_supplement_plan.py",
+    "experiments\\test_supplement_report.py",
+    "experiments\\test_trend_review.py",
+    "experiments\\test_wireless_discovery.py"
+  ],
+  "reference_modules": [
+    "air_timing",
+    "air_timing_acceptance",
+    "analyze_bianchi_dai",
+    "analyze_cohort_sync",
+    "analyze_fifo_isolation",
+    "analyze_retry_audit",
+    "analyze_retry_descriptors",
+    "analyze_sync",
+    "audit_cohort_four",
+    "audit_passive_single",
+    "bianchi_dai_probability",
+    "bianchi_dai_theory",
+    "cohort_node_capture",
+    "cohort_probe_controller",
+    "cohort_trace",
+    "continuous_ntp",
+    "dcf_compare",
+    "driver_profile",
+    "individual_sta_summary",
+    "listener_selection",
+    "passive_listener",
+    "passive_listener_node",
+    "radio_plan",
+    "reference_helpers",
+    "reg_access",
+    "retry_audit",
+    "sender_selection",
+    "sync_node",
+    "sync_run",
+    "window_observation"
+  ],
+  "reference_tests": [
+    "test_abort_workers.py",
+    "test_air_timing.py",
+    "test_cohort_four_audit.py",
+    "test_cohort_trace.py",
+    "test_continuous_ntp.py",
+    "test_dcf.py",
+    "test_individual_sta_summary.py",
+    "test_passive_listener.py",
+    "test_passive_listener_node.py",
+    "test_passive_single_audit.py",
+    "test_power_expectation.py",
+    "test_radio_plan.py",
+    "test_reg_access.py",
+    "test_remote_socket_path.py",
+    "test_retry_audit.py",
+    "test_sync.py"
+  ],
+  "new_remote": "https://github.com/crazykanzai/ath9k-experiment-console",
+  "published_hash_basis": "Git index normalized content; source hash is original workspace bytes"
+}

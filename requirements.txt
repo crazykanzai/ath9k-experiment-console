@@ -1,0 +1,2 @@
+# Offline console/replay/JSONL observation: Python >=3.10 standard library only.
+# Optional components: requirements-observer.txt, requirements-analysis.txt

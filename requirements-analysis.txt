@@ -1,0 +1,2 @@
+-r requirements-observer.txt
+matplotlib>=3.7,<4

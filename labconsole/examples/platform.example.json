@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "name": "四STA ath9k实验平台",
+  "controller": {
+    "management_ip": "192.168.100.2",
+    "ntp_source": "192.168.100.2"
+  },
+  "nodes": [
+    {
+      "role": "AP",
+      "address": "192.168.100.10",
+      "port": 22,
+      "username": "w",
+      "credential_ref": "lab-ssh",
+      "interface_hint": "",
+      "remote_work_dir": "~/apsta-console"
+    },
+    {
+      "role": "STA1",
+      "address": "192.168.100.11",
+      "port": 22,
+      "username": "w",
+      "credential_ref": "lab-ssh",
+      "interface_hint": "",
+      "remote_work_dir": "~/apsta-console"
+    },
+    {
+      "role": "STA2",
+      "address": "192.168.100.12",
+      "port": 22,
+      "username": "w",
+      "credential_ref": "lab-ssh",
+      "interface_hint": "",
+      "remote_work_dir": "~/apsta-console"
+    },
+    {
+      "role": "STA3",
+      "address": "192.168.100.13",
+      "port": 22,
+      "username": "w",
+      "credential_ref": "lab-ssh",
+      "interface_hint": "",
+      "remote_work_dir": "~/apsta-console"
+    },
+    {
+      "role": "STA4",
+      "address": "192.168.100.14",
+      "port": 22,
+      "username": "w",
+      "credential_ref": "lab-ssh",
+      "interface_hint": "",
+      "remote_work_dir": "~/apsta-console"
+    },
+    {
+      "role": "MON15",
+      "address": "192.168.100.15",
+      "port": 22,
+      "username": "abc",
+      "credential_ref": "lab-ssh",
+      "interface_hint": "",
+      "remote_work_dir": "~/apsta-console"
+    }
+  ],
+  "driver": {
+    "expected_srcversion": "0AB85B473A0B1B032BFECCD",
+    "expected_module_sha256": "1f02b2ee31ddcb5eff3b6cc515405229c3071147a4127b15516e1891d12d7019",
+    "hol_abi": 1,
+    "basic_retry_abi": 2,
+    "fifo_trigger": 20,
+    "resource_bundle": ""
+  },
+  "notes": "历史平台档案，仅作配置示例；接口、业务IP和实际状态均须现场重新读取。"
+}

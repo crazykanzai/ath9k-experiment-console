@@ -1,0 +1,7 @@
+ath9k-edca-control.patch
+ath9k-dcf-measurement-02.patch
+ath9k-dcf-hotpath-03.patch
+ath9k-hol-service-04.patch
+ath9k-hol-txq-fix-05.patch
+ath9k-basic-access-06.patch
+ath9k-basic-retry-07.patch

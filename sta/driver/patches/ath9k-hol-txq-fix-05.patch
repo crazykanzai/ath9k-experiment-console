@@ -1,0 +1,78 @@
+diff --git a/drivers/net/wireless/ath/ath9k/xmit.c b/drivers/net/wireless/ath/ath9k/xmit.c
+--- a/drivers/net/wireless/ath/ath9k/xmit.c
++++ b/drivers/net/wireless/ath/ath9k/xmit.c
+@@ -184,7 +184,8 @@ ath_get_skb_tid(struct ath_softc *sc, struct ath_node *an, struct sk_buff *skb)
+ }
+ 
+ static int
+-ath_tid_pull(struct ath_atx_tid *tid, struct sk_buff **skbuf)
++ath_tid_pull(struct ath_atx_tid *tid, struct sk_buff **skbuf,
++	     u64 *hol_enqueue_ns)
+ {
+ 	struct ieee80211_txq *txq = container_of((void*)tid, struct ieee80211_txq, drv_priv);
+ 	struct ath_softc *sc = tid->an->sc;
+@@ -201,6 +202,10 @@ ath_tid_pull(struct ath_atx_tid *tid, struct sk_buff **skbuf)
+ 	if (!skb)
+ 		return -ENOENT;
+ 
++	/* ath_tx_prepare() replaces tx_info->control with driver frame data. */
++	if (hol_enqueue_ns)
++		*hol_enqueue_ns = ath_debug_dcf_hol_enqueue_time(sc, skb);
++
+ 	ret = ath_tx_prepare(hw, skb, &txctl);
+ 	if (ret) {
+ 		ieee80211_free_txskb(hw, skb);
+@@ -219,12 +224,14 @@ ath_tid_pull(struct ath_atx_tid *tid, struct sk_buff **skbuf)
+ }
+ 
+ static int ath_tid_dequeue(struct ath_atx_tid *tid,
+-			   struct sk_buff **skb)
++			   struct sk_buff **skb, u64 *hol_enqueue_ns)
+ {
+ 	int ret = 0;
++	if (hol_enqueue_ns)
++		*hol_enqueue_ns = 0;
+ 	*skb = __skb_dequeue(&tid->retry_q);
+ 	if (!*skb)
+-		ret = ath_tid_pull(tid, skb);
++		ret = ath_tid_pull(tid, skb, hol_enqueue_ns);
+ 
+ 	return ret;
+ }
+@@ -327,7 +334,7 @@ static void ath_tid_drain(struct ath_softc *sc, struct ath_txq *txq,
+ 	memset(&ts, 0, sizeof(ts));
+ 	INIT_LIST_HEAD(&bf_head);
+ 
+-	while ((ret = ath_tid_dequeue(tid, &skb)) == 0) {
++	while ((ret = ath_tid_dequeue(tid, &skb, NULL)) == 0) {
+ 		fi = get_frame_info(skb);
+ 		bf = fi->bf;
+ 
+@@ -903,20 +910,24 @@ ath_tx_get_tid_subframe(struct ath_softc *sc, struct ath_txq *txq,
+ 	struct ath_frame_info *fi;
+ 	struct ath_buf *bf;
+ 	struct sk_buff *skb, *first_skb = NULL;
++	u64 hol_enqueue_ns;
+ 	u16 seqno;
+ 	int ret;
+ 
+ 	while (1) {
+-		ret = ath_tid_dequeue(tid, &skb);
++		ret = ath_tid_dequeue(tid, &skb, &hol_enqueue_ns);
+ 		if (ret < 0)
+ 			return ret;
+ 
+ 		fi = get_frame_info(skb);
+ 		bf = fi->bf;
+-		if (!fi->bf)
++		if (!fi->bf) {
+ 			bf = ath_tx_setup_buffer(sc, txq, tid, skb);
+-		else
++			if (bf)
++				bf->bf_state.bfs_hol_enqueue_ns = hol_enqueue_ns;
++		} else {
+ 			bf->bf_state.stale = false;
++		}
+ 
+ 		if (!bf) {
+ 			ath_txq_skb_done(sc, txq, skb);

@@ -1,0 +1,1614 @@
+diff --git a/drivers/net/wireless/ath/ath9k/ath9k.h b/drivers/net/wireless/ath/ath9k/ath9k.h
+index b278f33..4a9947d 100644
+--- a/drivers/net/wireless/ath/ath9k/ath9k.h
++++ b/drivers/net/wireless/ath/ath9k/ath9k.h
+@@ -277,6 +277,10 @@ struct ath_node {
+ 
+ 	int ackto;
+ 	struct list_head list;
++#ifdef CONFIG_ATH9K_DEBUGFS
++	struct list_head dcf_list;
++	struct ath_dcf_peer_stats dcf_stats;
++#endif
+ };
+ 
+ struct ath_tx_control {
+@@ -599,6 +603,13 @@ void ath_txq_schedule_all(struct ath_softc *sc);
+ int ath_tx_init(struct ath_softc *sc, int nbufs);
+ int ath_txq_update(struct ath_softc *sc, int qnum,
+ 		   struct ath9k_tx_queue_info *q);
++int ath9k_edca_update_base(struct ath_softc *sc, int ac,
++			   const struct ath9k_tx_queue_info *qinfo);
++int ath9k_edca_override_set(struct ath_softc *sc, int ac, u32 aifs,
++			    u32 cwmin, u32 cwmax);
++int ath9k_edca_override_enable(struct ath_softc *sc, int ac);
++int ath9k_edca_override_disable(struct ath_softc *sc, int ac, bool clear);
++int ath9k_edca_apply_current(struct ath_softc *sc, int ac);
+ u32 ath_pkt_duration(struct ath_softc *sc, u8 rix, int pktlen,
+ 		     int width, int half_gi, bool shortPreamble);
+ void ath_update_max_aggr_framelen(struct ath_softc *sc, int queue, int txop);
+@@ -978,6 +989,21 @@ void ath_ant_comb_scan(struct ath_softc *sc, struct ath_rx_status *rs);
+ #define ATH_TXPOWER_MAX         100     /* .5 dBm units */
+ #define MAX_GTT_CNT             5
+ 
++struct ath9k_edca_override {
++	bool base_valid;
++	bool override_valid;
++	bool enabled;
++	/*
++	 * Result of the last EDCA control write:
++	 *   0 verified, 1 rolled back, 2 rollback_failed, 3 readback_error.
++	 */
++	int last_status;
++	u32 aifs;
++	u32 cwmin;
++	u32 cwmax;
++	struct ath9k_tx_queue_info base;
++};
++
+ /* Powersave flags */
+ #define PS_WAIT_FOR_BEACON        BIT(0)
+ #define PS_WAIT_FOR_CAB           BIT(1)
+@@ -1005,6 +1031,7 @@ struct ath_softc {
+ 	spinlock_t sc_pm_lock;
+ 	spinlock_t sc_pcu_lock;
+ 	struct mutex mutex;
++	struct ath9k_edca_override edca_override[IEEE80211_NUM_ACS];
+ 	struct work_struct paprd_work;
+ 	struct work_struct hw_reset_work;
+ 	struct completion paprd_complete;
+diff --git a/drivers/net/wireless/ath/ath9k/debug.c b/drivers/net/wireless/ath/ath9k/debug.c
+index 586ff6e..c2837dd 100644
+--- a/drivers/net/wireless/ath/ath9k/debug.c
++++ b/drivers/net/wireless/ath/ath9k/debug.c
+@@ -712,44 +712,134 @@ static bool ath9k_edca_aifs_is_valid(u32 aifs)
+ 	return aifs >= 1 && aifs <= 15;
+ }
+ 
++#define ATH9K_EDCA_CTRL_BUFSIZE 1024
++
++struct ath9k_edca_readback {
++	u32 effective_aifs;
++	u32 effective_cwmin;
++	u32 effective_cwmax;
++	u32 hw_aifs;
++	u32 hw_cwmin;
++	u32 hw_cwmax;
++	bool valid;
++};
++
++static const char *ath9k_edca_status_name(int status)
++{
++	switch (status) {
++	case 0:
++		return "verified";
++	case 1:
++		return "rolled_back";
++	case 2:
++		return "rollback_failed";
++	case 3:
++		return "readback_error";
++	default:
++		return "unknown";
++	}
++}
++
++static void ath9k_edca_readback_locked(struct ath_softc *sc, int ac,
++				       struct ath9k_edca_readback *rb)
++{
++	struct ath9k_tx_queue_info qi;
++	struct ath_txq *txq;
++	u32 regval;
++
++	memset(rb, 0, sizeof(*rb));
++	txq = sc->tx.txq_map[ac];
++	if (!txq || !ath9k_hw_get_txq_props(sc->sc_ah, txq->axq_qnum, &qi))
++		return;
++	rb->effective_aifs = qi.tqi_aifs;
++	rb->effective_cwmin = qi.tqi_cwmin;
++	rb->effective_cwmax = qi.tqi_cwmax;
++	regval = REG_READ(sc->sc_ah, AR_DLCL_IFS(txq->axq_qnum));
++	rb->hw_cwmin = regval & AR_D_LCL_IFS_CWMIN;
++	rb->hw_cwmax = (regval & AR_D_LCL_IFS_CWMAX) >> AR_D_LCL_IFS_CWMAX_S;
++	rb->hw_aifs = (regval & AR_D_LCL_IFS_AIFS) >> AR_D_LCL_IFS_AIFS_S;
++	rb->valid = true;
++}
++
++static int ath9k_edca_verify_locked(struct ath_softc *sc, int ac)
++{
++	struct ath9k_edca_readback rb;
++
++	ath9k_edca_readback_locked(sc, ac, &rb);
++	if (!rb.valid)
++		return -ENODEV;
++	if (rb.effective_aifs != rb.hw_aifs ||
++	    rb.effective_cwmin != rb.hw_cwmin ||
++	    rb.effective_cwmax != rb.hw_cwmax)
++		return -EIO;
++	return 0;
++}
++
+ static ssize_t read_file_edca_ctrl(struct file *file, char __user *user_buf,
+ 				   size_t count, loff_t *ppos)
+ {
+ 	struct ath_softc *sc = file->private_data;
+-	struct ath9k_tx_queue_info qi;
++	struct ath9k_edca_override *override;
++	struct ath9k_edca_readback rb;
+ 	struct ath_txq *txq;
+-	char buf[512];
++	char *buf;
+ 	unsigned int len = 0;
++	ssize_t ret;
+ 	int ac;
+ 
++	buf = kmalloc(ATH9K_EDCA_CTRL_BUFSIZE, GFP_KERNEL);
++	if (!buf)
++		return -ENOMEM;
++	ath9k_ps_wakeup(sc);
+ 	mutex_lock(&sc->mutex);
+ 
+ 	for (ac = 0; ac < IEEE80211_NUM_ACS; ac++) {
++		override = &sc->edca_override[ac];
+ 		txq = sc->tx.txq_map[ac];
+ 		if (!txq) {
+-			len += scnprintf(buf + len, sizeof(buf) - len,
++			len += scnprintf(buf + len, ATH9K_EDCA_CTRL_BUFSIZE - len,
+ 					 "AC=%s unavailable\n",
+ 					 ath9k_edca_ac_names[ac]);
+ 			continue;
+ 		}
+ 
+-		if (!ath9k_hw_get_txq_props(sc->sc_ah, txq->axq_qnum, &qi)) {
+-			len += scnprintf(buf + len, sizeof(buf) - len,
++		ath9k_edca_readback_locked(sc, ac, &rb);
++		if (!rb.valid) {
++			len += scnprintf(buf + len, ATH9K_EDCA_CTRL_BUFSIZE - len,
+ 					 "AC=%s qnum=%u inactive\n",
+ 					 ath9k_edca_ac_names[ac],
+ 					 txq->axq_qnum);
+ 			continue;
+ 		}
+ 
+-		len += scnprintf(buf + len, sizeof(buf) - len,
+-				 "AC=%s qnum=%u aifs=%u cwmin=%u cwmax=%u\n",
++		len += scnprintf(buf + len, ATH9K_EDCA_CTRL_BUFSIZE - len,
++				 "AC=%s qnum=%u aifs=%u cwmin=%u cwmax=%u "
++				 "override_enabled=%u base_valid=%u "
++				 "base_aifs=%u base_cwmin=%u base_cwmax=%u "
++				 "override_valid=%u override_aifs=%u "
++				 "override_cwmin=%u override_cwmax=%u "
++				 "hw_aifs=%u hw_cwmin=%u hw_cwmax=%u "
++				 "status=%d status_name=%s\n",
+ 				 ath9k_edca_ac_names[ac], txq->axq_qnum,
+-				 qi.tqi_aifs, qi.tqi_cwmin, qi.tqi_cwmax);
++				 rb.effective_aifs, rb.effective_cwmin,
++				 rb.effective_cwmax,
++				 override->enabled, override->base_valid,
++				 override->base.tqi_aifs,
++				 override->base.tqi_cwmin,
++				 override->base.tqi_cwmax,
++				 override->override_valid, override->aifs,
++				 override->cwmin, override->cwmax,
++				 rb.hw_aifs, rb.hw_cwmin, rb.hw_cwmax,
++				 override->last_status,
++				 ath9k_edca_status_name(override->last_status));
+ 	}
+ 
+ 	mutex_unlock(&sc->mutex);
++	ath9k_ps_restore(sc);
+ 
+-	return simple_read_from_buffer(user_buf, count, ppos, buf, len);
++	ret = simple_read_from_buffer(user_buf, count, ppos, buf, len);
++	kfree(buf);
++	return ret;
+ }
+ 
+ static ssize_t write_file_edca_ctrl(struct file *file,
+@@ -758,12 +848,14 @@ static ssize_t write_file_edca_ctrl(struct file *file,
+ {
+ 	struct ath_softc *sc = file->private_data;
+ 	struct ath_common *common = ath9k_hw_common(sc->sc_ah);
+-	struct ath9k_tx_queue_info qi;
++	struct ath9k_edca_override saved;
+ 	struct ath_txq *txq;
+ 	char buf[64];
+ 	char ac_name[8];
++	char action[16];
+ 	char extra;
+ 	unsigned int aifs, cwmin, cwmax;
++	bool set_values;
+ 	int ac, ret;
+ 
+ 	if (!count || count >= sizeof(buf))
+@@ -773,20 +865,26 @@ static ssize_t write_file_edca_ctrl(struct file *file,
+ 		return -EFAULT;
+ 	buf[count] = '\0';
+ 
+-	/* The trailing conversion rejects extra non-whitespace arguments. */
+-	if (sscanf(buf, "%7s %u %u %u %c",
+-		   ac_name, &aifs, &cwmin, &cwmax, &extra) != 4)
++	/* Trailing conversions reject extra non-whitespace arguments. */
++	set_values = sscanf(buf, "%7s %u %u %u %c",
++			    ac_name, &aifs, &cwmin, &cwmax, &extra) == 4;
++	if (!set_values &&
++	    sscanf(buf, "%7s %15s %c", ac_name, action, &extra) != 2)
+ 		return -EINVAL;
+ 
+ 	ac = ath9k_edca_ac_from_name(ac_name);
+ 	if (ac < 0)
+ 		return ac;
+ 
+-	if (!ath9k_edca_aifs_is_valid(aifs) ||
+-	    !ath9k_edca_cw_is_valid(cwmin) ||
+-	    !ath9k_edca_cw_is_valid(cwmax) ||
+-	    cwmin > cwmax)
++	if (set_values) {
++		if (!ath9k_edca_aifs_is_valid(aifs) ||
++		    !ath9k_edca_cw_is_valid(cwmin) ||
++		    !ath9k_edca_cw_is_valid(cwmax) || cwmin > cwmax)
++			return -EINVAL;
++	} else if (strcmp(action, "enable") && strcmp(action, "disable") &&
++		   strcmp(action, "reset")) {
+ 		return -EINVAL;
++	}
+ 
+ 	txq = sc->tx.txq_map[ac];
+ 	if (!txq)
+@@ -795,24 +893,60 @@ static ssize_t write_file_edca_ctrl(struct file *file,
+ 	ath9k_ps_wakeup(sc);
+ 	mutex_lock(&sc->mutex);
+ 
+-	if (!ath9k_hw_get_txq_props(sc->sc_ah, txq->axq_qnum, &qi)) {
+-		ret = -EIO;
+-		goto out;
+-	}
++	saved = sc->edca_override[ac];
++	if (set_values)
++		ret = ath9k_edca_override_set(sc, ac, aifs, cwmin, cwmax);
++	else if (!strcmp(action, "enable"))
++		ret = ath9k_edca_override_enable(sc, ac);
++	else
++		ret = ath9k_edca_override_disable(sc, ac,
++						 !strcmp(action, "reset"));
+ 
+-	/* Preserve TXOP, readyTime and every other existing queue field. */
+-	qi.tqi_aifs = aifs;
+-	qi.tqi_cwmin = cwmin;
+-	qi.tqi_cwmax = cwmax;
++	/* Verify the write against both the cached effective queue properties
++	 * and the hardware register while still holding sc->mutex. A mismatch is
++	 * rolled back to the pre-write state and re-verified before reporting.
++	 */
++	if (ret == 0) {
++		int ver = ath9k_edca_verify_locked(sc, ac);
++
++		if (ver == 0) {
++			sc->edca_override[ac].last_status = 0;
++		} else if (ver == -ENODEV) {
++			sc->edca_override[ac].last_status = 3;
++			ret = -ENODEV;
++		} else {
++			sc->edca_override[ac] = saved;
++			if (ath9k_edca_apply_current(sc, ac) == 0) {
++				int ver2 = ath9k_edca_verify_locked(sc, ac);
++
++				if (ver2 == 0) {
++					sc->edca_override[ac].last_status = 1;
++					ret = -EIO;
++				} else {
++					sc->edca_override[ac].last_status = 2;
++					ret = -EPROTO;
++				}
++			} else {
++				sc->edca_override[ac].last_status = 2;
++				ret = -EPROTO;
++			}
++		}
++	}
+ 
+-	ret = ath_txq_update(sc, txq->axq_qnum, &qi);
+-	if (!ret)
++	if (!ret && set_values)
+ 		ath_info(common,
+-			 "EDCA ctrl: AC=%s qnum=%u aifs=%u cwmin=%u cwmax=%u\n",
++			 "EDCA override: AC=%s qnum=%u aifs=%u cwmin=%u cwmax=%u\n",
+ 			 ath9k_edca_ac_names[ac], txq->axq_qnum,
+ 			 aifs, cwmin, cwmax);
++	else if (!ret)
++		ath_info(common, "EDCA override: AC=%s qnum=%u action=%s\n",
++			 ath9k_edca_ac_names[ac], txq->axq_qnum, action);
++	else
++		ath_err(common,
++			"EDCA override: AC=%s qnum=%u verify failed, status=%s\n",
++			ath9k_edca_ac_names[ac], txq->axq_qnum,
++			ath9k_edca_status_name(sc->edca_override[ac].last_status));
+ 
+-out:
+ 	mutex_unlock(&sc->mutex);
+ 	ath9k_ps_restore(sc);
+ 
+@@ -989,7 +1123,9 @@ ath9k_dcf_signature_matches(const struct ath_dcf_measure_signature *signature,
+ 	       signature->control_rate_100kbps == sample->control_rate_100kbps &&
+ 	       signature->sifs_us == sample->sifs_us &&
+ 	       signature->slot_us == sample->slot_us &&
+-	       signature->aifsn == sample->aifsn;
++	       signature->aifsn == sample->aifsn &&
++	       signature->cwmin == sample->cwmin &&
++	       signature->cwmax == sample->cwmax;
+ }
+ 
+ static void
+@@ -1008,85 +1144,60 @@ ath9k_dcf_signature_save(struct ath_dcf_measure_signature *signature,
+ 	signature->sifs_us = sample->sifs_us;
+ 	signature->slot_us = sample->slot_us;
+ 	signature->aifsn = sample->aifsn;
++	signature->cwmin = sample->cwmin;
++	signature->cwmax = sample->cwmax;
+ }
+ 
+ static void
+ ath9k_dcf_accumulate_attempts(struct ath_dcf_attempt_stats *stats,
+-			      const struct ath_dcf_timing_sample *sample)
++			      const struct ath_dcf_timing_sample *sample,
++			      const struct ath_dcf_attempt_delta *delta)
+ {
+-	u64 exchange_attempts;
+-	u64 data_attempts;
+-
+ 	stats->packets++;
+ 	stats->packet_successes += sample->acked;
+ 	stats->packet_failures += !sample->acked;
+ 	stats->short_retries += sample->short_retries;
+ 	stats->long_retries += sample->long_retries;
+ 
+-	if (sample->protection == ATH_DCF_PROTECTION_BASIC) {
+-		exchange_attempts = (u64)sample->long_retries + 1;
+-		stats->exchange_attempts += exchange_attempts;
+-		stats->exchange_successes += sample->acked;
+-		stats->data_attempts += exchange_attempts;
+-		stats->data_successes += sample->acked;
+-	} else {
+-		/* AR_RTSFailCnt and AR_DataFailCnt expose failed RTS and DATA
+-		 * stages.  The final +1 is the descriptor's terminal attempt.
+-		 * A monitor trace is still required to classify an excessive-
+-		 * retry terminal failure unambiguously on each chipset.
+-		 */
+-		data_attempts = (u64)sample->long_retries + 1;
+-		exchange_attempts = (u64)sample->short_retries + data_attempts;
+-		stats->exchange_attempts += exchange_attempts;
+-		stats->exchange_successes += sample->acked;
+-		stats->rts_attempts += exchange_attempts;
+-		stats->rts_successes += data_attempts;
+-		stats->data_attempts += data_attempts;
+-		stats->data_successes += sample->acked;
+-	}
+-
+-	/* Paper-model exchange occupancy only; hardware backoff is not exposed. */
+-	stats->modeled_exchange_us +=
+-		exchange_attempts * sample->failure_time_us;
+-	if (sample->acked)
+-		stats->modeled_exchange_us += sample->success_time_us -
+-					      sample->failure_time_us;
++	stats->exchange_attempts += delta->exchange_attempts;
++	stats->exchange_successes += sample->acked;
++	stats->rts_attempts += delta->rts_attempts;
++	stats->rts_successes += delta->rts_successes;
++	stats->data_attempts += delta->data_attempts;
++	stats->data_successes += sample->acked;
++	stats->modeled_exchange_us += delta->modeled_exchange_us;
+ }
+ 
+-static struct ath_dcf_peer_stats *
+-ath9k_dcf_peer_get(struct ath_dcf_measurement *measurement, const u8 *addr)
++static void ath9k_dcf_peer_clear(struct ath_node *an)
+ {
+-	struct ath_dcf_peer_stats *empty = NULL;
+-	int i;
+-
+-	for (i = 0; i < ATH_DCF_MAX_PEERS; i++) {
+-		struct ath_dcf_peer_stats *peer = &measurement->peers[i];
++	memset(&an->dcf_stats, 0, sizeof(an->dcf_stats));
++	an->dcf_stats.valid = true;
++	ether_addr_copy(an->dcf_stats.addr, an->sta->addr);
++}
+ 
+-		if (peer->valid && ether_addr_equal(peer->addr, addr))
+-			return peer;
+-		if (!peer->valid && !empty)
+-			empty = peer;
+-	}
+-	if (!empty)
+-		return NULL;
++void ath_debug_dcf_peer_add(struct ath_softc *sc, struct ath_node *an)
++{
++	struct ath_dcf_measurement *measurement = &sc->debug.dcf_measurement;
+ 
+-	empty->valid = true;
+-	ether_addr_copy(empty->addr, addr);
+-	return empty;
++	INIT_LIST_HEAD(&an->dcf_list);
++	ath9k_dcf_peer_clear(an);
++	spin_lock_bh(&measurement->lock);
++	list_add_tail(&an->dcf_list, &measurement->peers);
++	measurement->peer_count++;
++	spin_unlock_bh(&measurement->lock);
+ }
+ 
+-static struct ath_dcf_peer_stats *
+-ath9k_dcf_peer_find(struct ath_dcf_measurement *measurement, const u8 *addr)
++void ath_debug_dcf_peer_remove(struct ath_softc *sc, struct ath_node *an)
+ {
+-	int i;
+-
+-	for (i = 0; i < ATH_DCF_MAX_PEERS; i++) {
+-		struct ath_dcf_peer_stats *peer = &measurement->peers[i];
++	struct ath_dcf_measurement *measurement = &sc->debug.dcf_measurement;
+ 
+-		if (peer->valid && ether_addr_equal(peer->addr, addr))
+-			return peer;
++	spin_lock_bh(&measurement->lock);
++	if (!list_empty(&an->dcf_list)) {
++		list_del_init(&an->dcf_list);
++		measurement->peer_count--;
+ 	}
+-	return NULL;
++	an->dcf_stats.valid = false;
++	spin_unlock_bh(&measurement->lock);
+ }
+ 
+ static void
+@@ -1135,23 +1246,19 @@ ath9k_dcf_delay_accumulate(struct ath_dcf_delay_stats *delay,
+ }
+ 
+ static void
+-ath9k_dcf_measurement_tx(struct ath_softc *sc, const u8 *peer_addr,
+-			 const struct ath_txq *txq,
+-			 const struct ath_dcf_timing_sample *sample)
++ath9k_dcf_measurement_tx_locked(struct ath_softc *sc, struct ath_node *an,
++				const struct ath_txq *txq,
++				const struct ath_dcf_timing_sample *sample,
++				const struct ath_dcf_attempt_delta *delta)
+ {
+ 	struct ath_dcf_measurement *measurement = &sc->debug.dcf_measurement;
+ 	struct ath_dcf_measure_signature *signature;
+ 	struct ath_dcf_peer_stats *peer;
+-	unsigned long flags;
+ 	int ac = txq->mac80211_qnum;
+ 
+-	spin_lock_irqsave(&measurement->lock, flags);
+-	if (!measurement->running)
+-		goto out;
++	lockdep_assert_held(&measurement->lock);
+ 
+-	peer = ath9k_dcf_peer_get(measurement, peer_addr);
+-	if (!peer)
+-		measurement->peer_overflow++;
++	peer = an && an->dcf_stats.valid ? &an->dcf_stats : NULL;
+ 
+ 	signature = &measurement->signature[ac];
+ 	if (!signature->valid) {
+@@ -1163,43 +1270,41 @@ ath9k_dcf_measurement_tx(struct ath_softc *sc, const u8 *peer_addr,
+ 			peer->delay[ac].anchor_valid = false;
+ 			peer->delay[ac].config_breaks++;
+ 		}
+-		goto out;
++		return;
+ 	}
+ 
+-	ath9k_dcf_accumulate_attempts(&measurement->ac[ac], sample);
++	ath9k_dcf_accumulate_attempts(&measurement->ac[ac], sample, delta);
+ 	if (peer) {
+-		ath9k_dcf_accumulate_attempts(&peer->ac[ac], sample);
++		ath9k_dcf_accumulate_attempts(&peer->ac[ac], sample, delta);
+ 		ath9k_dcf_delay_accumulate(&peer->delay[ac], sample,
+ 					   txq->axq_depth > 0);
+ 	}
+-out:
+-	spin_unlock_irqrestore(&measurement->lock, flags);
+ }
+ 
+-static void ath9k_dcf_measurement_exclude(struct ath_softc *sc,
+-				  const u8 *peer_addr,
+-				  const struct ath_txq *txq)
++static void ath9k_dcf_measurement_exclude_locked(struct ath_softc *sc,
++						 struct ath_node *an,
++						 const struct ath_txq *txq)
+ {
+ 	struct ath_dcf_measurement *measurement = &sc->debug.dcf_measurement;
+ 	struct ath_dcf_peer_stats *peer;
+-	unsigned long flags;
+ 
+-	spin_lock_irqsave(&measurement->lock, flags);
++	lockdep_assert_held(&measurement->lock);
+ 	if (measurement->running) {
+ 		measurement->excluded_samples++;
+-		peer = ath9k_dcf_peer_find(measurement, peer_addr);
++		peer = an && an->dcf_stats.valid ? &an->dcf_stats : NULL;
+ 		if (peer) {
+ 			peer->delay[txq->mac80211_qnum].anchor_valid = false;
+ 			peer->delay[txq->mac80211_qnum].excluded_breaks++;
+ 		}
+ 	}
+-	spin_unlock_irqrestore(&measurement->lock, flags);
+ }
+ 
+-void ath_debug_dcf_timing_tx(struct ath_softc *sc, struct ath_buf *bf,
+-			     const struct ath_tx_status *ts,
+-			     const struct ath_txq *txq)
++static void ath9k_dcf_timing_tx(struct ath_softc *sc, struct ath_buf *bf,
++				const struct ath_tx_status *ts,
++				const struct ath_txq *txq, struct ath_node *an,
++				u32 capture_state)
+ {
++	struct ath_dcf_measurement *measurement = &sc->debug.dcf_measurement;
+ 	struct ieee80211_tx_info *tx_info = IEEE80211_SKB_CB(bf->bf_mpdu);
+ 	struct ieee80211_hdr *hdr = (void *)bf->bf_mpdu->data;
+ 	struct ath_common *common = ath9k_hw_common(sc->sc_ah);
+@@ -1209,10 +1314,11 @@ void ath_debug_dcf_timing_tx(struct ath_softc *sc, struct ath_buf *bf,
+ 	const struct ieee80211_tx_rate *final_rate;
+ 	struct ath_dcf_timing_sample sample = {};
+ 	struct ath_dcf_timing_sample *saved;
++	struct ath_dcf_attempt_delta delta;
+ 	enum nl80211_band band = tx_info->band;
+-	unsigned long flags;
+ 	bool control_short = false;
+ 	bool fixed_rate = true;
++	bool measure_sample;
+ 	u16 control_index = 0;
+ 	u16 data_phy_sifs;
+ 	u32 error_status;
+@@ -1292,7 +1398,9 @@ void ath_debug_dcf_timing_tx(struct ath_softc *sc, struct ath_buf *bf,
+ 	sample.control_rate_100kbps = control_rate->bitrate;
+ 	sample.sifs_us = ath9k_dcf_channel_sifs(ah);
+ 	sample.slot_us = ath9k_dcf_slot_time(ah);
+-	sample.aifsn = ah->txq[txq->axq_qnum].tqi_aifs;
++	sample.aifsn = READ_ONCE(ah->txq[txq->axq_qnum].tqi_aifs);
++	sample.cwmin = READ_ONCE(ah->txq[txq->axq_qnum].tqi_cwmin);
++	sample.cwmax = READ_ONCE(ah->txq[txq->axq_qnum].tqi_cwmax);
+ 	sample.aifs_us = sample.sifs_us + sample.aifsn * sample.slot_us;
+ 	sample.descriptor_duration_us = ts->duration;
+ 
+@@ -1307,9 +1415,9 @@ void ath_debug_dcf_timing_tx(struct ath_softc *sc, struct ath_buf *bf,
+ 	sample.rts_airtime_us = ath9k_dcf_control_airtime(ah, band,
+ 					control_rate, control_index,
+ 					control_short, ATH_DCF_RTS_FRAME_LEN);
+-	sample.cts_airtime_us = ath9k_dcf_control_airtime(ah, band,
+-					control_rate, control_index,
+-					control_short, ATH_DCF_CTS_FRAME_LEN);
++	/* ACK and CTS have the same length and all other inputs are identical. */
++	BUILD_BUG_ON(ATH_DCF_ACK_FRAME_LEN != ATH_DCF_CTS_FRAME_LEN);
++	sample.cts_airtime_us = sample.ack_airtime_us;
+ 	if (!sample.ack_airtime_us || !sample.rts_airtime_us ||
+ 	    !sample.cts_airtime_us)
+ 		goto exclude;
+@@ -1331,121 +1439,207 @@ void ath_debug_dcf_timing_tx(struct ath_softc *sc, struct ath_buf *bf,
+ 	}
+ 	sample.hw_send_timestamp = ts->ts_tstamp;
+ 
+-	if (sample.success_time_us && sample.failure_time_us && sample.fixed_rate)
+-		ath9k_dcf_measurement_tx(sc, hdr->addr1, txq, &sample);
+-	else
+-		ath9k_dcf_measurement_exclude(sc, hdr->addr1, txq);
++	measure_sample = (capture_state & ATH_DCF_CAPTURE_MODE_MASK) ==
++			 ATH_DCF_CAPTURE_MEASUREMENT && sample.success_time_us &&
++			 sample.failure_time_us && sample.fixed_rate;
++	if (measure_sample)
++		delta = ath_dcf_attempt_delta(sample.protection == ATH_DCF_PROTECTION_RTS_CTS,
++					      sample.acked, sample.short_retries,
++					      sample.long_retries, sample.success_time_us,
++					      sample.failure_time_us);
++
++	/* Commit both consumers before a control transition can freeze/reset. */
++	spin_lock(&measurement->lock);
++	if (measurement->capture_state != capture_state)
++		goto unlock;
++	if (measurement->running) {
++		if (measure_sample)
++			ath9k_dcf_measurement_tx_locked(sc, an, txq,
++							&sample, &delta);
++		else
++			ath9k_dcf_measurement_exclude_locked(sc, an, txq);
++	}
+ 
+-	spin_lock_irqsave(&sc->debug.dcf_timing.lock, flags);
++	spin_lock(&sc->debug.dcf_timing.lock);
+ 	saved = &sc->debug.dcf_timing.ac[txq->mac80211_qnum];
+ 	sample.samples = saved->samples + 1;
+ 	sample.successes = saved->successes + sample.acked;
+ 	sample.failures = saved->failures + !sample.acked;
+ 	*saved = sample;
+-	spin_unlock_irqrestore(&sc->debug.dcf_timing.lock, flags);
++	spin_unlock(&sc->debug.dcf_timing.lock);
++unlock:
++	spin_unlock(&measurement->lock);
+ 	return;
+ 
+ exclude:
+-	ath9k_dcf_measurement_exclude(sc, hdr->addr1, txq);
++	spin_lock(&measurement->lock);
++	if (measurement->capture_state == capture_state)
++		ath9k_dcf_measurement_exclude_locked(sc, an, txq);
++	spin_unlock(&measurement->lock);
+ }
+ 
+-static ssize_t read_file_dcf_timing(struct file *file, char __user *user_buf,
+-				    size_t count, loff_t *ppos)
++void ath_debug_dcf_timing_tx(struct ath_softc *sc, struct ath_buf *bf,
++			     const struct ath_tx_status *ts,
++			     const struct ath_txq *txq,
++			     struct ath_node *an)
+ {
+-	struct ath_softc *sc = file->private_data;
+-	struct ath_hw *ah = sc->sc_ah;
+-	struct ath_dcf_timing_sample samples[IEEE80211_NUM_ACS];
+-	char *buf;
+-	unsigned long flags;
+-	unsigned int len = 0;
+-	ssize_t ret;
+-	int ac;
++	u32 state = READ_ONCE(sc->debug.dcf_measurement.capture_state);
+ 
+-	buf = kzalloc(PAGE_SIZE, GFP_KERNEL);
+-	if (!buf)
+-		return -ENOMEM;
++	/* The disabled path does not build a sample, calculate or acquire locks. */
++	if (!(state & ATH_DCF_CAPTURE_MODE_MASK))
++		return;
++	ath9k_dcf_timing_tx(sc, bf, ts, txq, an, state);
++}
++
++static const char *ath9k_dcf_capture_name(u32 state)
++{
++	switch (state & ATH_DCF_CAPTURE_MODE_MASK) {
++	case ATH_DCF_CAPTURE_DIAGNOSTIC:
++		return "diagnostic";
++	case ATH_DCF_CAPTURE_MEASUREMENT:
++		return "measurement";
++	default:
++		return "off";
++	}
++}
+ 
+-	spin_lock_irqsave(&sc->debug.dcf_timing.lock, flags);
+-	memcpy(samples, sc->debug.dcf_timing.ac, sizeof(samples));
+-	spin_unlock_irqrestore(&sc->debug.dcf_timing.lock, flags);
++struct ath_dcf_timing_snapshot {
++	u32 rts_threshold;
++	u32 capture_state;
++	bool dynack;
++	int coverage_class;
++	u8 channel_width;
++	struct ath_dcf_timing_sample ac[IEEE80211_NUM_ACS];
++};
++
++struct ath_dcf_stats_snapshot {
++	u64 elapsed_us;
++	struct ath_dcf_measurement data;
++	struct ath_dcf_peer_stats peers[ATH_DCF_MAX_PEERS];
++};
++
++/* Both seq_file show callbacks format immutable, per-open snapshots only. */
++static int read_file_dcf_timing(struct seq_file *file, void *unused)
++{
++	const struct ath_dcf_timing_snapshot *snapshot = file->private;
++	int ac;
+ 
+-	len += scnprintf(buf + len, PAGE_SIZE - len,
+-			 "version=1 units=us model=paper-virtual-slot ");
+-	if (sc->hw->wiphy->rts_threshold == (u32)-1)
+-		len += scnprintf(buf + len, PAGE_SIZE - len,
+-				 "rts_threshold=off ");
++	seq_printf(file,
++		   "version=1 units=us model=paper-virtual-slot capture=%s ",
++		   ath9k_dcf_capture_name(snapshot->capture_state));
++	if (snapshot->rts_threshold == (u32)-1)
++		seq_printf(file,
++			   "rts_threshold=off ");
+ 	else
+-		len += scnprintf(buf + len, PAGE_SIZE - len,
+-				 "rts_threshold=%u ",
+-				 sc->hw->wiphy->rts_threshold);
+-	len += scnprintf(buf + len, PAGE_SIZE - len,
+-			 "dynack=%u coverage_class=%d channel_width=%s\n",
+-			 ah->dynack.enabled, ah->coverage_class,
+-			 ath9k_dcf_channel_width_name(
+-				 ath9k_dcf_channel_width(ah)));
+-	len += scnprintf(buf + len, PAGE_SIZE - len,
+-			 "note=descriptor_duration_includes_phy_sifs;hw_timestamp_is_raw_not_elapsed\n");
++		seq_printf(file,
++			   "rts_threshold=%u ",
++			   snapshot->rts_threshold);
++	seq_printf(file,
++		   "dynack=%u coverage_class=%d channel_width=%s\n",
++		   snapshot->dynack, snapshot->coverage_class,
++		   ath9k_dcf_channel_width_name(snapshot->channel_width));
++	seq_printf(file,
++		   "note=descriptor_duration_includes_phy_sifs;hw_timestamp_is_raw_not_elapsed\n");
+ 
+ 	for (ac = 0; ac < IEEE80211_NUM_ACS; ac++) {
+-		const struct ath_dcf_timing_sample *s = &samples[ac];
++		const struct ath_dcf_timing_sample *s = &snapshot->ac[ac];
+ 
+ 		if (!s->valid) {
+-			len += scnprintf(buf + len, PAGE_SIZE - len,
+-					 "AC=%s ready=0\n",
+-					 ath9k_edca_ac_names[ac]);
++			seq_printf(file,
++				   "AC=%s ready=0\n",
++				   ath9k_edca_ac_names[ac]);
+ 			continue;
+ 		}
+ 
+-		len += scnprintf(buf + len, PAGE_SIZE - len,
+-			 "AC=%s ready=1 qnum=%u band=%u mode=%s outcome=%s "
+-			 "dynack=%u coverage_class=%d channel_width=%s "
+-			 "samples=%llu successes=%llu failures=%llu "
+-			 "fixed_rate=%u rate_series=%u final_series=%u tries=%u "
+-			 "frame_len=%u data_rate_100kbps=%u control_rate_100kbps=%u "
+-			 "short_retries=%u long_retries=%u hw_timestamp=%u "
+-			 "sifs_us=%u slot_us=%u aifsn=%u aifs_us=%u "
+-			 "descriptor_duration_us=%u data_airtime_us=%u "
+-			 "ack_airtime_us=%u rts_airtime_us=%u cts_airtime_us=%u "
+-			 "success_time_us=%u failure_time_us=%u\n",
+-			 ath9k_edca_ac_names[ac], s->qnum,
+-			 s->band, ath9k_dcf_protection_name(s->protection),
+-			 s->acked ? "success" : "failure",
+-			 s->dynack, s->coverage_class,
+-			 ath9k_dcf_channel_width_name(s->channel_width),
+-			 (unsigned long long)s->samples,
+-			 (unsigned long long)s->successes,
+-			 (unsigned long long)s->failures,
+-			 s->fixed_rate, s->active_series, s->final_series,
+-			 s->configured_tries, s->frame_len,
+-			 s->data_rate_100kbps, s->control_rate_100kbps,
+-			 s->short_retries, s->long_retries,
+-			 s->hw_send_timestamp, s->sifs_us, s->slot_us,
+-			 s->aifsn, s->aifs_us, s->descriptor_duration_us,
+-			 s->data_airtime_us, s->ack_airtime_us,
+-			 s->rts_airtime_us, s->cts_airtime_us,
+-			 s->success_time_us, s->failure_time_us);
++		seq_printf(file,
++			   "AC=%s ready=1 qnum=%u band=%u mode=%s outcome=%s "
++			   "dynack=%u coverage_class=%d channel_width=%s "
++			   "samples=%llu successes=%llu failures=%llu "
++			   "fixed_rate=%u rate_series=%u final_series=%u tries=%u "
++			   "frame_len=%u data_rate_100kbps=%u control_rate_100kbps=%u "
++			   "short_retries=%u long_retries=%u hw_timestamp=%u "
++			   "sifs_us=%u slot_us=%u aifsn=%u cwmin=%u cwmax=%u "
++			   "aifs_us=%u "
++			   "descriptor_duration_us=%u data_airtime_us=%u "
++			   "ack_airtime_us=%u rts_airtime_us=%u cts_airtime_us=%u "
++			   "success_time_us=%u failure_time_us=%u\n",
++			   ath9k_edca_ac_names[ac], s->qnum,
++			   s->band, ath9k_dcf_protection_name(s->protection),
++			   s->acked ? "success" : "failure",
++			   s->dynack, s->coverage_class,
++			   ath9k_dcf_channel_width_name(s->channel_width),
++			   (unsigned long long)s->samples,
++			   (unsigned long long)s->successes,
++			   (unsigned long long)s->failures,
++			   s->fixed_rate, s->active_series, s->final_series,
++			   s->configured_tries, s->frame_len,
++			   s->data_rate_100kbps, s->control_rate_100kbps,
++			   s->short_retries, s->long_retries,
++			   s->hw_send_timestamp, s->sifs_us, s->slot_us,
++			   s->aifsn, s->cwmin, s->cwmax, s->aifs_us,
++			   s->descriptor_duration_us,
++			   s->data_airtime_us, s->ack_airtime_us,
++			   s->rts_airtime_us, s->cts_airtime_us,
++			   s->success_time_us, s->failure_time_us);
+ 	}
+ 
+-	ret = simple_read_from_buffer(user_buf, count, ppos, buf, len);
+-	kfree(buf);
++	return 0;
++}
++
++static int open_file_dcf_timing(struct inode *inode, struct file *file)
++{
++	struct ath_softc *sc = inode->i_private;
++	struct ath_hw *ah = sc->sc_ah;
++	struct ath_dcf_timing_snapshot *snapshot;
++	int ret;
++
++	snapshot = kzalloc(sizeof(*snapshot), GFP_KERNEL);
++	if (!snapshot)
++		return -ENOMEM;
++
++	snapshot->rts_threshold = READ_ONCE(sc->hw->wiphy->rts_threshold);
++	snapshot->dynack = READ_ONCE(ah->dynack.enabled);
++	snapshot->coverage_class = READ_ONCE(ah->coverage_class);
++	snapshot->channel_width = ath9k_dcf_channel_width(ah);
++	spin_lock_bh(&sc->debug.dcf_timing.lock);
++	snapshot->capture_state = READ_ONCE(sc->debug.dcf_measurement.capture_state);
++	memcpy(snapshot->ac, sc->debug.dcf_timing.ac, sizeof(snapshot->ac));
++	spin_unlock_bh(&sc->debug.dcf_timing.lock);
++
++	ret = single_open(file, read_file_dcf_timing, snapshot);
++	if (ret)
++		kfree(snapshot);
+ 	return ret;
+ }
+ 
++static int release_file_dcf_snapshot(struct inode *inode, struct file *file)
++{
++	struct seq_file *seq = file->private_data;
++
++	if (!seq)
++		return 0;
++	kvfree(seq->private);
++	return single_release(inode, file);
++}
++
+ static const struct file_operations fops_dcf_timing = {
+-	.read = read_file_dcf_timing,
+-	.open = simple_open,
++	.read = seq_read,
++	.open = open_file_dcf_timing,
++	.release = release_file_dcf_snapshot,
+ 	.owner = THIS_MODULE,
+-	.llseek = default_llseek,
++	.llseek = seq_lseek,
+ };
+ 
+-#define ATH_DCF_STATS_BUF_SIZE (64 * 1024)
+-
+ static void
+ ath9k_dcf_measurement_clear_locked(struct ath_dcf_measurement *measurement)
+ {
++	struct ath_node *an;
++
++	lockdep_assert_held(&measurement->lock);
+ 	memset(measurement->signature, 0, sizeof(measurement->signature));
+ 	memset(measurement->ac, 0, sizeof(measurement->ac));
+-	memset(measurement->peers, 0, sizeof(measurement->peers));
++	list_for_each_entry(an, &measurement->peers, dcf_list)
++		ath9k_dcf_peer_clear(an);
+ 	measurement->excluded_samples = 0;
+ 	measurement->config_mismatches = 0;
+ 	measurement->peer_overflow = 0;
+@@ -1453,52 +1647,30 @@ ath9k_dcf_measurement_clear_locked(struct ath_dcf_measurement *measurement)
+ 	measurement->stop_ns = 0;
+ }
+ 
+-static ssize_t read_file_dcf_stats(struct file *file, char __user *user_buf,
+-				   size_t count, loff_t *ppos)
++static int read_file_dcf_stats(struct seq_file *file, void *unused)
+ {
+-	struct ath_softc *sc = file->private_data;
+-	struct ath_dcf_measurement *measurement = &sc->debug.dcf_measurement;
+-	struct ath_dcf_measurement *snapshot;
+-	u64 now_ns = ktime_get_ns();
+-	u64 end_ns;
+-	u64 elapsed_us = 0;
+-	char *buf;
+-	unsigned long flags;
+-	unsigned int len = 0;
+-	ssize_t ret;
++	const struct ath_dcf_stats_snapshot *view = file->private;
++	const struct ath_dcf_measurement *snapshot = &view->data;
+ 	int ac, i;
+ 
+-	snapshot = kvzalloc(sizeof(*snapshot), GFP_KERNEL);
+-	buf = kvzalloc(ATH_DCF_STATS_BUF_SIZE, GFP_KERNEL);
+-	if (!snapshot || !buf) {
+-		ret = -ENOMEM;
+-		goto free;
+-	}
+-
+-	spin_lock_irqsave(&measurement->lock, flags);
+-	memcpy(snapshot, measurement, sizeof(*snapshot));
+-	spin_unlock_irqrestore(&measurement->lock, flags);
+-
+-	end_ns = snapshot->running ? now_ns : snapshot->stop_ns;
+-	if (snapshot->start_ns && end_ns >= snapshot->start_ns)
+-		elapsed_us = div_u64(end_ns - snapshot->start_ns, NSEC_PER_USEC);
+-
+-	len += scnprintf(buf + len, ATH_DCF_STATS_BUF_SIZE - len,
+-			 "version=2 units=us scope=tx-attempt-window "
+-			 "running=%u generation=%u elapsed_us=%llu "
+-			 "peer_capacity=%u peer_overflow=%llu "
+-			 "config_mismatches=%llu excluded_samples=%llu\n",
+-			 snapshot->running, snapshot->generation,
+-			 (unsigned long long)elapsed_us, ATH_DCF_MAX_PEERS,
+-			 (unsigned long long)snapshot->peer_overflow,
+-			 (unsigned long long)snapshot->config_mismatches,
+-			 (unsigned long long)snapshot->excluded_samples);
+-	len += scnprintf(buf + len, ATH_DCF_STATS_BUF_SIZE - len,
+-			 "note=probabilities_are_user_space_ratios;"
+-			 "modeled_exchange_excludes_backoff_and_busy_freeze;"
+-			 "hol_delay_is_per_peer_saturated_tsf_departure_delta;"
+-			 "hol_delay_requires_fixed_signature_and_queue_continuity;"
+-			 "retry_stage_mapping_requires_monitor_validation\n");
++	seq_puts(file, "version=2 units=us scope=tx-attempt-window ");
++	seq_printf(file,
++		   "running=%u generation=%u elapsed_us=%llu capture=%s "
++		   "peer_capacity=%u peer_overflow=%llu "
++		   "config_mismatches=%llu excluded_samples=%llu\n",
++		   snapshot->running, snapshot->generation,
++		   (unsigned long long)view->elapsed_us,
++		   ath9k_dcf_capture_name(snapshot->capture_state),
++		   ATH_DCF_MAX_PEERS,
++		   (unsigned long long)snapshot->peer_overflow,
++		   (unsigned long long)snapshot->config_mismatches,
++		   (unsigned long long)snapshot->excluded_samples);
++	seq_printf(file,
++		   "note=probabilities_are_user_space_ratios;"
++		   "modeled_exchange_excludes_backoff_and_busy_freeze;"
++		   "hol_delay_is_per_peer_saturated_tsf_departure_delta;"
++		   "hol_delay_requires_fixed_signature_and_queue_continuity;"
++		   "retry_stage_mapping_requires_monitor_validation\n");
+ 
+ 	for (ac = 0; ac < IEEE80211_NUM_ACS; ac++) {
+ 		const struct ath_dcf_attempt_stats *s = &snapshot->ac[ac];
+@@ -1506,47 +1678,48 @@ static ssize_t read_file_dcf_stats(struct file *file, char __user *user_buf,
+ 			&snapshot->signature[ac];
+ 
+ 		if (!signature->valid) {
+-			len += scnprintf(buf + len, ATH_DCF_STATS_BUF_SIZE - len,
+-					 "AC=%s ready=0 packets=0\n",
+-					 ath9k_edca_ac_names[ac]);
++			seq_printf(file,
++				   "AC=%s ready=0 packets=0\n",
++				   ath9k_edca_ac_names[ac]);
+ 			continue;
+ 		}
+ 
+-		len += scnprintf(buf + len, ATH_DCF_STATS_BUF_SIZE - len,
+-			 "AC=%s ready=1 band=%u mode=%s dynack=%u "
+-			 "coverage_class=%d channel_width=%s frame_len=%u "
+-			 "data_rate_100kbps=%u control_rate_100kbps=%u "
+-			 "sifs_us=%u slot_us=%u aifsn=%u "
+-			 "packets=%llu packet_successes=%llu packet_failures=%llu "
+-			 "exchange_attempts=%llu exchange_successes=%llu "
+-			 "rts_attempts=%llu rts_successes=%llu "
+-			 "data_attempts=%llu data_successes=%llu "
+-			 "short_retries=%llu long_retries=%llu "
+-			 "modeled_exchange_us=%llu config_mismatches=%llu\n",
+-			 ath9k_edca_ac_names[ac], signature->band,
+-			 ath9k_dcf_protection_name(signature->protection),
+-			 signature->dynack, signature->coverage_class,
+-			 ath9k_dcf_channel_width_name(signature->channel_width),
+-			 signature->frame_len, signature->data_rate_100kbps,
+-			 signature->control_rate_100kbps, signature->sifs_us,
+-			 signature->slot_us, signature->aifsn,
+-			 (unsigned long long)s->packets,
+-			 (unsigned long long)s->packet_successes,
+-			 (unsigned long long)s->packet_failures,
+-			 (unsigned long long)s->exchange_attempts,
+-			 (unsigned long long)s->exchange_successes,
+-			 (unsigned long long)s->rts_attempts,
+-			 (unsigned long long)s->rts_successes,
+-			 (unsigned long long)s->data_attempts,
+-			 (unsigned long long)s->data_successes,
+-			 (unsigned long long)s->short_retries,
+-			 (unsigned long long)s->long_retries,
+-			 (unsigned long long)s->modeled_exchange_us,
+-			 (unsigned long long)s->config_mismatches);
++		seq_printf(file,
++			   "AC=%s ready=1 band=%u mode=%s dynack=%u "
++			   "coverage_class=%d channel_width=%s frame_len=%u "
++			   "data_rate_100kbps=%u control_rate_100kbps=%u "
++			   "sifs_us=%u slot_us=%u aifsn=%u cwmin=%u cwmax=%u "
++			   "packets=%llu packet_successes=%llu packet_failures=%llu "
++			   "exchange_attempts=%llu exchange_successes=%llu "
++			   "rts_attempts=%llu rts_successes=%llu "
++			   "data_attempts=%llu data_successes=%llu "
++			   "short_retries=%llu long_retries=%llu "
++			   "modeled_exchange_us=%llu config_mismatches=%llu\n",
++			   ath9k_edca_ac_names[ac], signature->band,
++			   ath9k_dcf_protection_name(signature->protection),
++			   signature->dynack, signature->coverage_class,
++			   ath9k_dcf_channel_width_name(signature->channel_width),
++			   signature->frame_len, signature->data_rate_100kbps,
++			   signature->control_rate_100kbps, signature->sifs_us,
++			   signature->slot_us, signature->aifsn,
++			   signature->cwmin, signature->cwmax,
++			   (unsigned long long)s->packets,
++			   (unsigned long long)s->packet_successes,
++			   (unsigned long long)s->packet_failures,
++			   (unsigned long long)s->exchange_attempts,
++			   (unsigned long long)s->exchange_successes,
++			   (unsigned long long)s->rts_attempts,
++			   (unsigned long long)s->rts_successes,
++			   (unsigned long long)s->data_attempts,
++			   (unsigned long long)s->data_successes,
++			   (unsigned long long)s->short_retries,
++			   (unsigned long long)s->long_retries,
++			   (unsigned long long)s->modeled_exchange_us,
++			   (unsigned long long)s->config_mismatches);
+ 	}
+ 
+-	for (i = 0; i < ATH_DCF_MAX_PEERS; i++) {
+-		const struct ath_dcf_peer_stats *peer = &snapshot->peers[i];
++	for (i = 0; i < snapshot->peer_count; i++) {
++		const struct ath_dcf_peer_stats *peer = &view->peers[i];
+ 
+ 		if (!peer->valid)
+ 			continue;
+@@ -1556,54 +1729,102 @@ static ssize_t read_file_dcf_stats(struct file *file, char __user *user_buf,
+ 
+ 			if (!s->packets)
+ 				continue;
+-			len += scnprintf(buf + len,
+-					 ATH_DCF_STATS_BUF_SIZE - len,
+-					 "peer=%pM AC=%s packets=%llu "
+-					 "packet_successes=%llu packet_failures=%llu "
+-					 "exchange_attempts=%llu exchange_successes=%llu "
+-					 "rts_attempts=%llu rts_successes=%llu "
+-					 "data_attempts=%llu data_successes=%llu "
+-					 "short_retries=%llu long_retries=%llu "
+-					 "modeled_exchange_us=%llu "
+-					 "delay_samples=%llu delay_sum_us=%llu "
+-					 "delay_sum_sq_us2=%llu delay_min_us=%u "
+-					 "delay_max_us=%u "
+-					 "delay_queue_empty_breaks=%llu "
+-					 "delay_drop_breaks=%llu "
+-					 "delay_config_breaks=%llu "
+-					 "delay_excluded_breaks=%llu "
+-					 "delay_invalid_deltas=%llu "
+-					 "delay_overflow_samples=%llu\n",
+-					 peer->addr, ath9k_edca_ac_names[ac],
+-					 (unsigned long long)s->packets,
+-					 (unsigned long long)s->packet_successes,
+-					 (unsigned long long)s->packet_failures,
+-					 (unsigned long long)s->exchange_attempts,
+-					 (unsigned long long)s->exchange_successes,
+-					 (unsigned long long)s->rts_attempts,
+-					 (unsigned long long)s->rts_successes,
+-					 (unsigned long long)s->data_attempts,
+-					 (unsigned long long)s->data_successes,
+-					 (unsigned long long)s->short_retries,
+-					 (unsigned long long)s->long_retries,
+-					 (unsigned long long)s->modeled_exchange_us,
+-					 (unsigned long long)delay->samples,
+-					 (unsigned long long)delay->sum_us,
+-					 (unsigned long long)delay->sum_sq_us2,
+-					 delay->min_us, delay->max_us,
+-					 (unsigned long long)delay->queue_empty_breaks,
+-					 (unsigned long long)delay->terminal_drop_breaks,
+-					 (unsigned long long)delay->config_breaks,
+-					 (unsigned long long)delay->excluded_breaks,
+-					 (unsigned long long)delay->invalid_deltas,
+-					 (unsigned long long)delay->overflow_samples);
++			seq_printf(file,
++				   "peer=%pM AC=%s packets=%llu "
++				   "packet_successes=%llu packet_failures=%llu "
++				   "exchange_attempts=%llu exchange_successes=%llu "
++				   "rts_attempts=%llu rts_successes=%llu "
++				   "data_attempts=%llu data_successes=%llu "
++				   "short_retries=%llu long_retries=%llu "
++				   "modeled_exchange_us=%llu "
++				   "delay_samples=%llu delay_sum_us=%llu "
++				   "delay_sum_sq_us2=%llu delay_min_us=%u "
++				   "delay_max_us=%u "
++				   "delay_queue_empty_breaks=%llu "
++				   "delay_drop_breaks=%llu "
++				   "delay_config_breaks=%llu "
++				   "delay_excluded_breaks=%llu "
++				   "delay_invalid_deltas=%llu "
++				   "delay_overflow_samples=%llu\n",
++				   peer->addr, ath9k_edca_ac_names[ac],
++				   (unsigned long long)s->packets,
++				   (unsigned long long)s->packet_successes,
++				   (unsigned long long)s->packet_failures,
++				   (unsigned long long)s->exchange_attempts,
++				   (unsigned long long)s->exchange_successes,
++				   (unsigned long long)s->rts_attempts,
++				   (unsigned long long)s->rts_successes,
++				   (unsigned long long)s->data_attempts,
++				   (unsigned long long)s->data_successes,
++				   (unsigned long long)s->short_retries,
++				   (unsigned long long)s->long_retries,
++				   (unsigned long long)s->modeled_exchange_us,
++				   (unsigned long long)delay->samples,
++				   (unsigned long long)delay->sum_us,
++				   (unsigned long long)delay->sum_sq_us2,
++				   delay->min_us, delay->max_us,
++				   (unsigned long long)delay->queue_empty_breaks,
++				   (unsigned long long)delay->terminal_drop_breaks,
++				   (unsigned long long)delay->config_breaks,
++				   (unsigned long long)delay->excluded_breaks,
++				   (unsigned long long)delay->invalid_deltas,
++				   (unsigned long long)delay->overflow_samples);
+ 		}
+ 	}
+ 
+-	ret = simple_read_from_buffer(user_buf, count, ppos, buf, len);
+-free:
+-	kvfree(buf);
+-	kvfree(snapshot);
++	return 0;
++}
++
++static int open_file_dcf_stats(struct inode *inode, struct file *file)
++{
++	struct ath_softc *sc = inode->i_private;
++	struct ath_dcf_measurement *measurement = &sc->debug.dcf_measurement;
++	struct ath_dcf_stats_snapshot *view;
++	struct ath_dcf_measurement *snapshot;
++	struct ath_node *an;
++	u64 end_ns;
++	int peer = 0;
++	int ret;
++
++	/* Writes use inode->i_private; they do not allocate a read snapshot. */
++	if (!(file->f_mode & FMODE_READ)) {
++		file->private_data = NULL;
++		return 0;
++	}
++	view = kvzalloc(sizeof(*view), GFP_KERNEL);
++	if (!view)
++		return -ENOMEM;
++	snapshot = &view->data;
++
++	spin_lock_bh(&measurement->lock);
++	end_ns = measurement->running ? ktime_get_ns() : measurement->stop_ns;
++	snapshot->capture_state = measurement->capture_state;
++	snapshot->running = measurement->running;
++	snapshot->generation = measurement->generation;
++	snapshot->peer_count = min_t(u16, measurement->peer_count,
++				     ATH_DCF_MAX_PEERS);
++	snapshot->peer_overflow = measurement->peer_overflow;
++	if (measurement->peer_count > ATH_DCF_MAX_PEERS)
++		snapshot->peer_overflow += measurement->peer_count -
++					   ATH_DCF_MAX_PEERS;
++	snapshot->config_mismatches = measurement->config_mismatches;
++	snapshot->excluded_samples = measurement->excluded_samples;
++	if (measurement->start_ns && end_ns >= measurement->start_ns)
++		view->elapsed_us = end_ns - measurement->start_ns;
++	memcpy(snapshot->signature, measurement->signature,
++	       sizeof(snapshot->signature));
++	memcpy(snapshot->ac, measurement->ac, sizeof(snapshot->ac));
++	list_for_each_entry(an, &measurement->peers, dcf_list) {
++		if (peer == ATH_DCF_MAX_PEERS)
++			break;
++		view->peers[peer++] = an->dcf_stats;
++	}
++	spin_unlock_bh(&measurement->lock);
++	view->elapsed_us = div_u64(view->elapsed_us, NSEC_PER_USEC);
++
++	ret = single_open(file, read_file_dcf_stats, view);
++	if (ret)
++		kvfree(view);
+ 	return ret;
+ }
+ 
+@@ -1611,12 +1832,13 @@ static ssize_t write_file_dcf_stats(struct file *file,
+ 				    const char __user *user_buf,
+ 				    size_t count, loff_t *ppos)
+ {
+-	struct ath_softc *sc = file->private_data;
++	struct ath_softc *sc = file_inode(file)->i_private;
+ 	struct ath_dcf_measurement *measurement = &sc->debug.dcf_measurement;
+ 	char buf[32];
+ 	char *command;
+ 	u64 now_ns;
+-	unsigned long flags;
++	u32 mode = ATH_DCF_CAPTURE_OFF;
++	bool diagnostic;
+ 
+ 	if (!count || count >= sizeof(buf))
+ 		return -EINVAL;
+@@ -1624,45 +1846,64 @@ static ssize_t write_file_dcf_stats(struct file *file,
+ 		return -EFAULT;
+ 	buf[count] = '\0';
+ 	command = strim(buf);
++	diagnostic = !strcmp(command, "diagnostic");
+ 	if (strcmp(command, "start") && strcmp(command, "stop") &&
+-	    strcmp(command, "reset"))
++	    strcmp(command, "reset") && !diagnostic && strcmp(command, "off"))
+ 		return -EINVAL;
+ 
++	spin_lock_bh(&measurement->lock);
++	if (measurement->running && (diagnostic || !strcmp(command, "off"))) {
++		spin_unlock_bh(&measurement->lock);
++		return -EBUSY;
++	}
++	/* State publication and sample clearing share the timing reader's lock. */
++	spin_lock(&sc->debug.dcf_timing.lock);
+ 	now_ns = ktime_get_ns();
+-	spin_lock_irqsave(&measurement->lock, flags);
+ 	if (!strcmp(command, "start")) {
+ 		ath9k_dcf_measurement_clear_locked(measurement);
+ 		measurement->generation++;
+-		spin_lock(&sc->debug.dcf_timing.lock);
+ 		memset(sc->debug.dcf_timing.ac, 0,
+ 		       sizeof(sc->debug.dcf_timing.ac));
+-		spin_unlock(&sc->debug.dcf_timing.lock);
+ 		measurement->running = true;
+ 		measurement->start_ns = now_ns;
++		mode = ATH_DCF_CAPTURE_MEASUREMENT;
+ 	} else if (!strcmp(command, "stop")) {
+ 		if (measurement->running)
+ 			measurement->stop_ns = now_ns;
+ 		measurement->running = false;
+-	} else {
++	} else if (!strcmp(command, "reset")) {
+ 		ath9k_dcf_measurement_clear_locked(measurement);
+ 		measurement->generation++;
+ 		measurement->running = false;
+-		spin_lock(&sc->debug.dcf_timing.lock);
+ 		memset(sc->debug.dcf_timing.ac, 0,
+ 		       sizeof(sc->debug.dcf_timing.ac));
+-		spin_unlock(&sc->debug.dcf_timing.lock);
++	} else if (diagnostic) {
++		memset(sc->debug.dcf_timing.ac, 0,
++		       sizeof(sc->debug.dcf_timing.ac));
++		mode = ATH_DCF_CAPTURE_DIAGNOSTIC;
+ 	}
+-	spin_unlock_irqrestore(&measurement->lock, flags);
++	WRITE_ONCE(measurement->capture_state,
++		   ath_dcf_capture_next(measurement->capture_state, mode));
++	spin_unlock(&sc->debug.dcf_timing.lock);
++	spin_unlock_bh(&measurement->lock);
+ 
+ 	return count;
+ }
+ 
++static loff_t seek_file_dcf_stats(struct file *file, loff_t offset, int whence)
++{
++	if (!(file->f_mode & FMODE_READ))
++		return -ESPIPE;
++	return seq_lseek(file, offset, whence);
++}
++
+ static const struct file_operations fops_dcf_stats = {
+-	.read = read_file_dcf_stats,
++	.read = seq_read,
+ 	.write = write_file_dcf_stats,
+-	.open = simple_open,
++	.open = open_file_dcf_stats,
++	.release = release_file_dcf_snapshot,
+ 	.owner = THIS_MODULE,
+-	.llseek = default_llseek,
++	.llseek = seek_file_dcf_stats,
+ };
+ 
+ static int read_file_misc(struct seq_file *file, void *data)
+@@ -2381,6 +2622,7 @@ int ath9k_init_debug(struct ath_hw *ah)
+ 
+ 	spin_lock_init(&sc->debug.dcf_timing.lock);
+ 	spin_lock_init(&sc->debug.dcf_measurement.lock);
++	INIT_LIST_HEAD(&sc->debug.dcf_measurement.peers);
+ 
+ 	sc->debug.debugfs_phy = debugfs_create_dir("ath9k",
+ 						   sc->hw->wiphy->debugfsdir);
+diff --git a/drivers/net/wireless/ath/ath9k/debug.h b/drivers/net/wireless/ath/ath9k/debug.h
+index 9f85639..f86db6f 100644
+--- a/drivers/net/wireless/ath/ath9k/debug.h
++++ b/drivers/net/wireless/ath/ath9k/debug.h
+@@ -19,9 +19,11 @@
+ 
+ #include "hw.h"
+ #include "dfs_debug.h"
++#include "dcf_math.h"
+ 
+ struct ath_txq;
+ struct ath_buf;
++struct ath_node;
+ struct fft_sample_tlv;
+ 
+ #ifdef CONFIG_ATH9K_DEBUGFS
+@@ -271,6 +273,8 @@ struct ath_dcf_timing_sample {
+ 	u16 sifs_us;
+ 	u16 slot_us;
+ 	u16 aifsn;
++	u32 cwmin;
++	u32 cwmax;
+ 	u32 aifs_us;
+ 	u32 descriptor_duration_us;
+ 	u32 data_airtime_us;
+@@ -327,6 +331,8 @@ struct ath_dcf_measure_signature {
+ 	u16 sifs_us;
+ 	u16 slot_us;
+ 	u16 aifsn;
++	u32 cwmin;
++	u32 cwmax;
+ };
+ 
+ /*
+@@ -363,8 +369,13 @@ struct ath_dcf_peer_stats {
+ };
+ 
+ struct ath_dcf_measurement {
+-	/* Protects lifecycle state, signatures, counters and peer slots. */
++	/* Process access uses spin_lock_bh(), TX tasklet access spin_lock().
++	 * Lock order: measurement.lock -> dcf_timing.lock. No hard-IRQ users.
++	 */
+ 	spinlock_t lock;
++	u32 capture_state;
++	u16 peer_count;
++	struct list_head peers;
+ 	bool running;
+ 	u32 generation;
+ 	u64 start_ns;
+@@ -374,7 +385,6 @@ struct ath_dcf_measurement {
+ 	u64 peer_overflow;
+ 	struct ath_dcf_measure_signature signature[IEEE80211_NUM_ACS];
+ 	struct ath_dcf_attempt_stats ac[IEEE80211_NUM_ACS];
+-	struct ath_dcf_peer_stats peers[ATH_DCF_MAX_PEERS];
+ };
+ 
+ struct ath9k_debug {
+@@ -394,7 +404,10 @@ void ath_debug_stat_tx(struct ath_softc *sc, struct ath_buf *bf,
+ 		       unsigned int flags);
+ void ath_debug_dcf_timing_tx(struct ath_softc *sc, struct ath_buf *bf,
+ 			     const struct ath_tx_status *ts,
+-			     const struct ath_txq *txq);
++			     const struct ath_txq *txq,
++			     struct ath_node *an);
++void ath_debug_dcf_peer_add(struct ath_softc *sc, struct ath_node *an);
++void ath_debug_dcf_peer_remove(struct ath_softc *sc, struct ath_node *an);
+ void ath_debug_stat_rx(struct ath_softc *sc, struct ath_rx_status *rs);
+ int ath9k_get_et_sset_count(struct ieee80211_hw *hw,
+ 			    struct ieee80211_vif *vif, int sset);
+@@ -438,7 +451,16 @@ static inline void ath_debug_stat_tx(struct ath_softc *sc,
+ static inline void ath_debug_dcf_timing_tx(struct ath_softc *sc,
+ 					    struct ath_buf *bf,
+ 					    const struct ath_tx_status *ts,
+-					    const struct ath_txq *txq)
++					    const struct ath_txq *txq,
++					    struct ath_node *an)
++{
++}
++static inline void ath_debug_dcf_peer_add(struct ath_softc *sc,
++					  struct ath_node *an)
++{
++}
++static inline void ath_debug_dcf_peer_remove(struct ath_softc *sc,
++					     struct ath_node *an)
+ {
+ }
+ static inline void ath_debug_stat_rx(struct ath_softc *sc,
+diff --git a/drivers/net/wireless/ath/ath9k/main.c b/drivers/net/wireless/ath/ath9k/main.c
+index 1b71fb1..9e1ff0a 100644
+--- a/drivers/net/wireless/ath/ath9k/main.c
++++ b/drivers/net/wireless/ath/ath9k/main.c
+@@ -363,6 +363,7 @@ static void ath_node_attach(struct ath_softc *sc, struct ieee80211_sta *sta,
+ 	memset(&an->key_idx, 0, sizeof(an->key_idx));
+ 
+ 	ath_tx_node_init(sc, an);
++	ath_debug_dcf_peer_add(sc, an);
+ 
+ 	ath_dynack_node_init(sc->sc_ah, an);
+ }
+@@ -371,6 +372,7 @@ static void ath_node_detach(struct ath_softc *sc, struct ieee80211_sta *sta)
+ {
+ 	struct ath_node *an = (struct ath_node *)sta->drv_priv;
+ 	ath_tx_node_cleanup(sc, an);
++	ath_debug_dcf_peer_remove(sc, an);
+ 
+ 	ath_dynack_node_deinit(sc->sc_ah, an);
+ }
+@@ -1741,8 +1743,7 @@ static int ath9k_conf_tx(struct ieee80211_hw *hw,
+ 		queue, txq->axq_qnum, params->aifs, params->cw_min,
+ 		params->cw_max, params->txop);
+ 
+-	ath_update_max_aggr_framelen(sc, queue, qi.tqi_burstTime);
+-	ret = ath_txq_update(sc, txq->axq_qnum, &qi);
++	ret = ath9k_edca_update_base(sc, queue, &qi);
+ 	if (ret)
+ 		ath_err(common, "TXQ Update failed\n");
+ 
+diff --git a/drivers/net/wireless/ath/ath9k/xmit.c b/drivers/net/wireless/ath/ath9k/xmit.c
+index 41c020c..1c86e89 100644
+--- a/drivers/net/wireless/ath/ath9k/xmit.c
++++ b/drivers/net/wireless/ath/ath9k/xmit.c
+@@ -685,6 +685,7 @@ static void ath_tx_process_buffer(struct ath_softc *sc, struct ath_txq *txq,
+ 	struct ieee80211_hw *hw = sc->hw;
+ 	struct ieee80211_tx_info *info;
+ 	struct ieee80211_sta *sta;
++	struct ath_node *an = NULL;
+ 	struct ieee80211_hdr *hdr;
+ 	struct ath_atx_tid *tid = NULL;
+ 	bool txok, flush;
+@@ -703,7 +704,7 @@ static void ath_tx_process_buffer(struct ath_softc *sc, struct ath_txq *txq,
+ 	hdr = (struct ieee80211_hdr *) bf->bf_mpdu->data;
+ 	sta = ieee80211_find_sta_by_ifaddr(hw, hdr->addr1, hdr->addr2);
+ 	if (sta) {
+-		struct ath_node *an = (struct ath_node *)sta->drv_priv;
++		an = (struct ath_node *)sta->drv_priv;
+ 		tid = ath_get_skb_tid(sc, an, bf->bf_mpdu);
+ 		ath_tx_count_airtime(sc, sta, bf, ts, tid->tidno);
+ 		if (ts->ts_status & (ATH9K_TXERR_FILT | ATH9K_TXERR_XRETRY))
+@@ -713,7 +714,7 @@ static void ath_tx_process_buffer(struct ath_softc *sc, struct ath_txq *txq,
+ 	if (!bf_isampdu(bf)) {
+ 		if (!flush) {
+ 			info = IEEE80211_SKB_CB(bf->bf_mpdu);
+-			ath_debug_dcf_timing_tx(sc, bf, ts, txq);
++			ath_debug_dcf_timing_tx(sc, bf, ts, txq, an);
+ 			memcpy(info->control.rates, bf->rates,
+ 			       sizeof(info->control.rates));
+ 			ath_tx_rc_status(sc, bf, ts, 1, txok ? 0 : 1, txok);
+@@ -1803,6 +1804,131 @@ int ath_txq_update(struct ath_softc *sc, int qnum,
+ 	return error;
+ }
+ 
++static int
++ath9k_edca_apply(struct ath_softc *sc, int ac,
++		 const struct ath9k_tx_queue_info *base, bool overridden,
++		 u32 aifs, u32 cwmin, u32 cwmax)
++{
++	struct ath9k_tx_queue_info effective = *base;
++	struct ath_txq *txq;
++
++	lockdep_assert_held(&sc->mutex);
++	if (ac < 0 || ac >= IEEE80211_NUM_ACS)
++		return -EINVAL;
++	txq = sc->tx.txq_map[ac];
++	if (!txq)
++		return -ENODEV;
++
++	if (overridden) {
++		effective.tqi_aifs = aifs;
++		effective.tqi_cwmin = cwmin;
++		effective.tqi_cwmax = cwmax;
++	}
++	ath_update_max_aggr_framelen(sc, ac, effective.tqi_burstTime);
++	return ath_txq_update(sc, txq->axq_qnum, &effective);
++}
++
++int ath9k_edca_update_base(struct ath_softc *sc, int ac,
++			   const struct ath9k_tx_queue_info *qinfo)
++{
++	struct ath9k_edca_override *override;
++
++	lockdep_assert_held(&sc->mutex);
++	if (ac < 0 || ac >= IEEE80211_NUM_ACS)
++		return -EINVAL;
++	override = &sc->edca_override[ac];
++	override->base = *qinfo;
++	override->base_valid = true;
++
++	return ath9k_edca_apply(sc, ac, &override->base, override->enabled,
++				 override->aifs, override->cwmin, override->cwmax);
++}
++
++int ath9k_edca_override_set(struct ath_softc *sc, int ac, u32 aifs,
++			    u32 cwmin, u32 cwmax)
++{
++	struct ath9k_edca_override *override;
++	struct ath_txq *txq;
++	int ret;
++
++	lockdep_assert_held(&sc->mutex);
++	if (ac < 0 || ac >= IEEE80211_NUM_ACS)
++		return -EINVAL;
++	override = &sc->edca_override[ac];
++	if (!override->base_valid) {
++		txq = sc->tx.txq_map[ac];
++		if (!txq || !ath9k_hw_get_txq_props(sc->sc_ah, txq->axq_qnum,
++						      &override->base))
++			return -ENODEV;
++		override->base_valid = true;
++	}
++
++	ret = ath9k_edca_apply(sc, ac, &override->base, true,
++			       aifs, cwmin, cwmax);
++	if (ret)
++		return ret;
++	override->aifs = aifs;
++	override->cwmin = cwmin;
++	override->cwmax = cwmax;
++	override->override_valid = true;
++	override->enabled = true;
++	return 0;
++}
++
++int ath9k_edca_override_enable(struct ath_softc *sc, int ac)
++{
++	struct ath9k_edca_override *override;
++	int ret;
++
++	lockdep_assert_held(&sc->mutex);
++	if (ac < 0 || ac >= IEEE80211_NUM_ACS)
++		return -EINVAL;
++	override = &sc->edca_override[ac];
++	if (!override->override_valid || !override->base_valid)
++		return -ENOENT;
++	ret = ath9k_edca_apply(sc, ac, &override->base, true,
++			       override->aifs, override->cwmin, override->cwmax);
++	if (!ret)
++		override->enabled = true;
++	return ret;
++}
++
++int ath9k_edca_override_disable(struct ath_softc *sc, int ac, bool clear)
++{
++	struct ath9k_edca_override *override;
++	int ret = 0;
++
++	lockdep_assert_held(&sc->mutex);
++	if (ac < 0 || ac >= IEEE80211_NUM_ACS)
++		return -EINVAL;
++	override = &sc->edca_override[ac];
++	if (override->enabled) {
++		if (!override->base_valid)
++			return -ENOENT;
++		ret = ath9k_edca_apply(sc, ac, &override->base, false, 0, 0, 0);
++		if (ret)
++			return ret;
++		override->enabled = false;
++	}
++	if (clear)
++		override->override_valid = false;
++	return 0;
++}
++
++int ath9k_edca_apply_current(struct ath_softc *sc, int ac)
++{
++	struct ath9k_edca_override *override;
++
++	lockdep_assert_held(&sc->mutex);
++	if (ac < 0 || ac >= IEEE80211_NUM_ACS)
++		return -EINVAL;
++	override = &sc->edca_override[ac];
++	if (!override->base_valid)
++		return -ENOENT;
++	return ath9k_edca_apply(sc, ac, &override->base, override->enabled,
++				 override->aifs, override->cwmin, override->cwmax);
++}
++
+ int ath_cabq_update(struct ath_softc *sc)
+ {
+ 	struct ath9k_tx_queue_info qi;
+diff --git a/drivers/net/wireless/ath/ath9k/dcf_math.h b/drivers/net/wireless/ath/ath9k/dcf_math.h
+new file mode 100644
+index 0000000..6f7004e
+--- /dev/null
++++ b/drivers/net/wireless/ath/ath9k/dcf_math.h
+@@ -0,0 +1,52 @@
++/* SPDX-License-Identifier: ISC */
++#ifndef ATH9K_DCF_MATH_H
++#define ATH9K_DCF_MATH_H
++
++#include <linux/types.h>
++
++enum ath_dcf_capture_mode {
++	ATH_DCF_CAPTURE_OFF,
++	ATH_DCF_CAPTURE_DIAGNOSTIC,
++	ATH_DCF_CAPTURE_MEASUREMENT,
++};
++
++#define ATH_DCF_CAPTURE_MODE_MASK 3U
++
++/* Publish mode and epoch together; every control transition advances epoch. */
++static inline u32 ath_dcf_capture_next(u32 state, u32 mode)
++{
++	return ((state + 4) & ~ATH_DCF_CAPTURE_MODE_MASK) | mode;
++}
++
++struct ath_dcf_attempt_delta {
++	u32 exchange_attempts;
++	u32 data_attempts;
++	u32 rts_attempts;
++	u32 rts_successes;
++	u64 modeled_exchange_us;
++};
++
++static inline struct ath_dcf_attempt_delta
++ath_dcf_attempt_delta(bool rts_cts, bool acked, u8 short_retries,
++		      u8 long_retries, u32 success_us, u32 failure_us)
++{
++	struct ath_dcf_attempt_delta delta = {0};
++
++	delta.data_attempts = (u32)long_retries + 1;
++	delta.exchange_attempts = delta.data_attempts;
++	if (rts_cts) {
++		/* Preserve ABI 02's provisional terminal-stage mapping. Target
++		 * chipset monitor validation is still required for retry failures.
++		 */
++		delta.exchange_attempts += short_retries;
++		delta.rts_attempts = delta.exchange_attempts;
++		delta.rts_successes = delta.data_attempts;
++	}
++	delta.modeled_exchange_us = (u64)delta.exchange_attempts * failure_us;
++	if (acked)
++		delta.modeled_exchange_us += success_us - failure_us;
++
++	return delta;
++}
++
++#endif /* ATH9K_DCF_MATH_H */

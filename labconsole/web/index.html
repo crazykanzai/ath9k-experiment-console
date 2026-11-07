@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>APSTASELECT · 实验总控</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script><script src="/replay.js" defer></script><script src="/live.js" defer></script></head>
+<body>
+<header><div class="brand"><span class="eyebrow">APSTASELECT</span><h1>实验总控</h1></div><div class="badge">本机总控 · 实验执行未启用</div></header>
+<div class="shell"><nav aria-label="主导航">
+<button data-page="overview" class="selected">01　开始使用</button><button data-page="platform">02　平台配置</button><button data-page="plan">03　实验方案</button><button data-page="check">04　环境检查</button><button data-page="run">05　任务运行</button><button data-page="reports">06　结果与历史</button>
+<button data-page="replay">07　历史回放</button>
+<button data-page="live">08　实时观察</button>
+<p class="small">本机运行<br>方案、任务与报告</p></nav>
+<main><div id="message" role="status" hidden></div>
+<section id="overview" class="page">
+<p class="eyebrow">使用说明</p><h2>实验工作台</h2>
+<p class="lead">这一版可以配置平台、封存方案、演练停止与故障流程，并读取已有单发结果生成报告。所有操作都在本机完成。</p>
+<div class="notice"><strong>本版本不会连接节点。</strong> 演练阶段采用压缩时间，数值指标全部为NA，正式有效窗口始终为0。真实SSH、配置恢复和采集门禁尚未由本界面现场验收。</div>
+<div class="cards"><article><span>1</span><h3>配置与检查</h3><p>导入平台档案。IP、账号和远端目录成为配置；密码不写入档案。</p><button data-page="platform">设置平台 →</button></article><article><span>2</span><h3>方案与演练</h3><p>查看每一轮发送集合和CW。计划封存后，演练按顺序运行。</p><button data-page="plan">选择方案 →</button></article><article><span>3</span><h3>读取已有数据</h3><p>显式指定已归档的单发汇总文件，保留NA与完整失败包。</p><button data-page="reports">生成报告 →</button></article></div>
+<h3>本机安装</h3><dl><dt>版本</dt><dd id="version"></dd><dt>数据工作区</dt><dd id="workspace"></dd></dl>
+<p>换电脑时重新安装Python，复制程序并选择新的工作区。历史数据通过“结果与历史”导入，不复制旧虚拟环境。详细说明见项目中的 <code>labconsole/README.md</code>。</p>
+<button data-page="replay">打开历史回放演示</button>
+</section>
+<section id="platform" class="page" hidden>
+<p class="eyebrow">平台档案 / 不含凭据正文</p><h2>配置六节点平台</h2>
+<p>这些是预期地址与连接信息，不代表当前设备已经通过检查。接口提示可以留空，未来真实适配器须现场识别业务IP和PHY。</p>
+<div class="formgrid"><label>平台名称<input id="platform-name" maxlength="100"></label><label>控制机管理IP<input id="management-ip"></label><label>持续同步时间源<input id="ntp-source"></label></div>
+<div class="tablewrap"><table><thead><tr><th>角色</th><th>SSH地址</th><th>端口</th><th>用户名</th><th>凭据引用</th><th>接口提示</th><th>远端工作目录</th></tr></thead><tbody id="nodes"></tbody></table></div>
+<details><summary>驱动身份和档案JSON</summary><p>保存时严格校验ABI1、Basic ABI2与FIFO20；不会安装或加载模块。</p><textarea id="platform-json" rows="16" spellcheck="false"></textarea><button id="apply-json">将JSON填入表单</button></details>
+<div class="actions"><button id="save-platform" class="primary">保存平台档案</button><button id="export-platform">导出档案</button><label class="filebutton">导入档案<input id="import-platform" type="file" accept=".json,application/json"></label></div>
+<p class="small">凭据引用只是名称。本版本没有凭据读取或SSH连接。导出不包含密码、密钥正文及浏览器访问令牌。</p>
+</section>
+<section id="plan" class="page" hidden>
+<p class="eyebrow">方案设置</p><h2>选择实验方案</h2>
+<div class="formgrid"><label>实验模板<select id="template" aria-describedby="template-help"><option value="individual">四台STA分别单发</option><option value="cw">单STA五档CW标定</option><option value="nodes">固定W节点数扫描</option><option value="power">四STA低功率单发对照</option></select></label><label>每条件重复数<input id="repeats" type="number" min="1" max="10" value="5"></label><label id="fixed-w-field">固定 W<select id="W"><option>8</option><option>16</option><option selected>32</option><option>64</option><option>128</option></select></label><label id="sender-field" hidden>标定发送节点<select id="sender" disabled><option>STA1</option><option>STA2</option><option>STA3</option><option>STA4</option></select></label><label>预登记随机种子<input id="seed" type="number" value="2026103120"></label></div>
+<p id="template-help" class="field-help"></p>
+<p>Basic、K3、BE AIFSN3、DATA24Mbps、UDP1200B、每活跃STA30Mbps、FIFO20；正式15/180/15秒。低功率模板仅指定STA5dBm，AP保持现场读回。其余模板保留现场功率。</p>
+<div class="actions"><button id="preview-plan" class="primary">生成逐轮计划</button><button id="export-plan" disabled>导出封存计划</button></div>
+<div id="plan-preview" hidden><div id="plan-summary" class="notice"></div><p id="plan-hash" class="small mono"></p><div class="tablewrap"><table><thead><tr><th>轮</th><th>区组</th><th>活跃STA</th><th>W</th><th>CWmin/max</th></tr></thead><tbody id="trials"></tbody></table></div>
+<details><summary>短预检及约束</summary><pre id="prechecks"></pre><p>节点数模板使用循环选择的组合，窗口波动含组合和时间变化，不保证所有组合完全平衡。正式清单、门禁和统计口径会随任务封存。</p></details>
+<h3>离线演练</h3><div class="formgrid"><label>每个模拟阶段耗时（秒）<input id="delay" type="number" min="0.01" max="2" step="0.01" value="0.2"></label><label>门禁故障演练轮次（空白＝不注入）<input id="fault-at" type="number" min="1" placeholder="例如 3"></label></div>
+<div class="actions"><button id="start-offline" class="primary">启动离线演练</button><button disabled title="真实执行适配器与现场验收尚未完成">启动真实实验（锁定）</button></div><p class="small">这里只演练调度状态，不压缩或改变真实实验的180秒测量规则。故障注入只影响离线演练。</p></div>
+</section>
+<section id="check" class="page" hidden><p class="eyebrow">只读本机 / 不探测SSH</p><h2>环境检查</h2><p>“通过”仅适用于对应本机条目；节点项目统一显示“未现场检查”，不能据此宣布平台可打流。</p><button id="check-local" class="primary">执行本机离线检查</button><div class="tablewrap"><table><thead><tr><th>项目</th><th>状态</th><th>说明</th></tr></thead><tbody id="checks"></tbody></table></div></section>
+<section id="run" class="page" hidden><p class="eyebrow">独立进程 / 持久状态</p><h2>任务运行</h2><label>查看任务<select id="job-select"></select></label><div id="no-jobs" class="empty">尚无任务，请先生成计划并启动离线演练。</div><div id="job-detail" hidden><div id="job-summary" class="notice"></div><progress id="job-progress" max="1" value="0"></progress><div class="actions"><button id="stop-after">本轮结束后停止</button><button id="stop-now" class="danger">立即中止并清理演练</button><a id="run-report" target="_blank" rel="noopener">打开报告</a><a id="run-export">导出演练包</a></div><p class="small">刷新或关闭网页不会重复启动任务。离线进程没有远端动作；真实中止/恢复尚待适配验收。心跳异常时不自动抢锁或重跑。</p><pre id="events" aria-label="任务事件"></pre></div></section>
+<section id="reports" class="page" hidden><p class="eyebrow">只读源文件 / 新建分析版本</p><h2>结果与历史</h2><p>第一版支持导入已完成或按门禁停止的“四台STA分别单发”批次汇总 <code>metrics.json</code>（含显式rows）。不支持从原始pcap或任意目录自动推断实验。</p><label>本机指标文件绝对路径<input id="source-path" placeholder="选择或粘贴已归档批次的 metrics.json 完整路径"></label><button id="import-report" class="primary">读取并生成离线报告</button><p class="small">不修改源文件和旧有效性。原概率有NA时，不用可得子集代表整组；辅助近似另列。每个批次单独生成报告，不自动合并或作因果比较。</p><h3>分析版本</h3><div id="reports-list" class="reportlist"></div><h3>演练历史</h3><div id="runs-list" class="reportlist"></div></section>
+<section id="replay" class="page" hidden>
+<div class="replay-heading"><div><p class="eyebrow">历史数据 / 离线展示</p><h2>实验回放</h2></div><span class="badge">历史回放 · 非实时</span></div>
+<div class="replay-loader">
+<div class="formgrid"><label>已有实验<select id="replay-source" aria-label="已有实验"></select></label><label>已导入回放<select id="replay-library" aria-label="已导入回放"><option value="">尚未导入</option></select></label></div>
+<div class="actions"><button id="replay-import" class="primary">读取所选实验</button><button id="replay-open">打开已导入回放</button></div>
+<p id="replay-source-info" class="small mono"></p>
+<details><summary>导入其他本机路径 / 从其他电脑带回的快照</summary><label>批次 metrics.json 或回放 replay.json 的绝对路径<input id="replay-path" placeholder="粘贴本机文件路径，不扫描整个实验目录"></label><button id="replay-import-path">导入指定文件</button></details>
+</div>
+<p id="replay-empty" class="empty">选择一个已有实验，点击“读取所选实验”。只读取显式窗口，原数据保持不变。</p>
+<div id="replay-content" hidden>
+<div id="replay-batch-title" class="replay-title"></div>
+<div class="formgrid replay-options"><label>显示方式<select id="replay-view"><option value="batch">批次总览（整窗结果，按轮次）</option><option value="window">单窗口时序（真实逐秒吞吐）</option></select></label><label>窗口<select id="replay-round" aria-label="回放窗口"></select></label><label>成功概率口径<select id="replay-probability"><option value="p_original">原逐次ACK成功代理（保留NA）</option><option value="p_auxiliary">全包辅助近似（包含完整失败包）</option></select></label></div>
+<div id="replay-node-filters" class="replay-filters" aria-label="显示序列"></div>
+<div class="replay-toolbar"><button id="replay-prev">上一窗</button><button id="replay-play" class="primary">播放窗口</button><button id="replay-pause">暂停</button><button id="replay-next">下一窗</button><label>倍速<select id="replay-speed"><option value="1">1×</option><option value="5">5×</option><option value="10" selected>10×</option><option value="30">30×</option></select></label><button id="replay-present">演示大字模式</button><a id="replay-download">导出回放快照</a><a id="replay-zip">导出ZIP</a></div>
+<label class="replay-scrub">窗口播放进度<input id="replay-position" type="range" min="0" max="210" step="0.1" value="0"></label>
+<div id="replay-position-label" class="small mono"></div>
+<p id="replay-status" class="field-help" role="status"></p>
+<div class="replay-charts"><article class="replay-wide"><h3 id="replay-throughput-title">AP接收吞吐</h3><svg id="replay-throughput" role="img" aria-label="历史吞吐曲线" viewBox="0 0 1000 265"></svg><p id="replay-throughput-caption" class="small"></p></article><article><h3>成功条件平均 HoL · ms</h3><svg id="replay-hol" role="img" aria-label="历史平均HoL曲线" viewBox="0 0 1000 265"></svg><p class="small">成功条件、完整服务包、主机服务起点代理。仅有整窗值；与吞吐不是独立验证证据。</p></article><article><h3 id="replay-p-title">原逐次ACK成功代理 · %</h3><svg id="replay-prob" role="img" aria-label="历史交换成功概率曲线" viewBox="0 0 1000 265"></svg><p id="replay-p-caption" class="small"></p></article></div>
+<h3>所选窗口的最终统计</h3><p class="small">这是已归档的整窗结果，不随播放进度重新计算。未发送节点及未核准值显示NA。</p>
+<div class="tablewrap"><table><thead><tr><th>STA</th><th>发送</th><th>吞吐 Mbps</th><th>HoL ms</th><th>原ACK %</th><th>辅助近似 %</th><th>最终MAC %</th><th>完整包</th><th>终态失败</th><th>跨界</th><th>未知起点</th><th>右删失</th><th>队列积压 %</th></tr></thead><tbody id="replay-stats"></tbody></table></div>
+<details class="replay-provenance"><summary>数据来源、时间边界与限制</summary><p id="replay-provenance" class="small mono"></p><ul id="replay-notes"></ul></details>
+</div></section>
+<section id="live" class="page" hidden>
+<div class="replay-heading"><div><p class="eyebrow">观察数据 / 不控制业务</p><h2>实时观察与 CW 变化</h2></div><span id="live-kind" class="badge">尚未接入数据</span></div>
+<p>观察正在追加的本机遥测文件。采集由独立只读适配器或未来算法提供；此页不会连接节点、修改CW或清零驱动。正式打流入口仍锁定。</p>
+<details id="live-setup" open><summary>接入数据源</summary><div class="formgrid"><label>观察名称<input id="live-title" value="CW动态观察"></label><label>数据来源标识<select id="live-source-kind"><option value="live">现场遥测（需独立采集适配器）</option><option value="offline_test">离线测试数据（非测量证据）</option></select></label></div><label>只读跟随的本机 .jsonl 路径<input id="live-path" placeholder="由只读采集器或算法持续追加；文件必须已存在"></label><button id="live-attach" class="primary">接入观察文件</button><p class="small">现场适配：python -m labconsole.observe --help。当前没有在网页内启动SSH采集的按钮；本次仅做离线验收。</p></details>
+<div class="actions"><label class="live-session-label">观察会话<select id="live-sessions"><option value="">暂无会话</option></select></label><button id="live-open">打开</button><button id="live-pause">暂停画面</button><button id="live-detach">停止跟随文件</button><a id="live-export" hidden>导出诊断快照</a></div>
+<p id="live-status" class="field-help" role="status">等待数据。不会自动启动业务。</p>
+<div class="replay-filters" id="live-filters"></div>
+<div class="replay-charts"><article><h3>AP 接收速率 · Mbps</h3><svg id="live-throughput" role="img" aria-label="实时接收速率曲线" viewBox="0 0 1000 270"></svg><p class="small">AP station dump字节差分估算，包含其计数范围的流量；不是正式iperf应用吞吐。</p></article><article><h3>区间成功样本 HoL · ms</h3><svg id="live-hol" role="img" aria-label="实时HoL曲线" viewBox="0 0 1000 270"></svg><p class="small">累计量差分，按TX完成回调归属采样区间；不等同最终完整服务包HoL，不伪造逐包精度。</p></article><article><h3>区间逐次 ACK 成功代理 · %</h3><svg id="live-prob" role="img" aria-label="实时ACK成功代理曲线" viewBox="0 0 1000 270"></svg><p class="small">Basic ABI2成功路径代理；含未核准终态失败、RTS、无尝试或重置时NA。非精确碰撞概率。</p></article><article><h3>实际 BE CWmin 读回</h3><svg id="live-cw" role="img" aria-label="实际CW变化曲线" viewBox="0 0 1000 270"></svg><p class="small">硬件读回阶梯线。竖虚线为发现变化的采样时刻，实际变化发生在相邻读回之间；请求事件另列。</p></article></div>
+<div class="tablewrap"><table><thead><tr><th>节点</th><th>数据状态</th><th>最近数据年龄</th><th>CWmin/max</th><th>AIFSN</th><th>HoL ms</th><th>ACK %</th><th>新增HoL样本</th><th>区间失败</th><th>NA/断线原因</th></tr></thead><tbody id="live-nodes"></tbody></table></div>
+<h3>CW 与算法事件</h3><p class="small">cw_requested只表示请求；cw_applied是调用方报告；cw_verified/硬件变化才提供读回证据。全部是观察记录，本页没有写参数功能。跨CW变化区间不分配给任一CW，不据变化前后曲线直接作因果结论。</p><div class="tablewrap"><table><thead><tr><th>时间</th><th>节点/目标</th><th>事件</th><th>请求</th><th>读回</th><th>来源/说明</th></tr></thead><tbody id="live-events"></tbody></table></div>
+<details><summary>接入错误</summary><pre id="live-errors">暂无</pre></details>
+</section>
+</main></div><footer>正式实验：预部署 → ready/armed → 共同绝对T0 → 公共测量窗口。离线演练不是测量证据。</footer>
+</body></html>

@@ -1,0 +1,442 @@
+diff --git a/include/net/mac80211.h b/include/net/mac80211.h
+--- a/include/net/mac80211.h
++++ b/include/net/mac80211.h
+@@ -1026,6 +1026,7 @@
+  * @hw_queue: HW queue to put the frame on, skb_get_queue_mapping() gives the AC
+  * @ack_frame_id: internal frame ID for TX status, used internally
+  * @tx_time_est: TX time estimate in units of 4us, used internally
++ * @hol_enqueue_valid: control.enqueue_time was set by the mac80211 TXQ
+  * @control: union part for control data
+  * @control.rates: TX rates array to try
+  * @control.rts_cts_rate_idx: rate for RTS or CTS
+@@ -1066,8 +1067,9 @@
+ 	u32 band:3,
+ 	    ack_frame_id:13,
+ 	    hw_queue:4,
+-	    tx_time_est:10;
+-	/* 2 free bits */
++	    tx_time_est:10,
++	    hol_enqueue_valid:1;
++	/* 1 free bit */
+ 
+ 	union {
+ 		struct {
+@@ -6605,6 +6607,16 @@
+ 				     struct ieee80211_txq *txq);
+ 
+ /**
++ * ieee80211_hol_enqueue_time_ns - recover a TXQ enqueue timestamp
++ * @skb: frame before the driver replaces the control part of skb->cb
++ *
++ * Returns a CLOCK_MONOTONIC timestamp in nanoseconds, or zero when this frame
++ * did not pass through an internal TXQ or the 32-bit CoDel time has become
++ * ambiguous. This is the queue *arrival* time, not the HoL transition time.
++ */
++u64 ieee80211_hol_enqueue_time_ns(struct sk_buff *skb);
++
++/**
+  * ieee80211_tx_dequeue_ni - dequeue a packet from a software tx queue
+  * (in process context)
+  *
+diff --git a/net/mac80211/tx.c b/net/mac80211/tx.c
+--- a/net/mac80211/tx.c
++++ b/net/mac80211/tx.c
+@@ -1313,7 +1313,29 @@
+ static void ieee80211_set_skb_enqueue_time(struct sk_buff *skb)
+ {
+ 	IEEE80211_SKB_CB(skb)->control.enqueue_time = codel_get_time();
+-}
++	IEEE80211_SKB_CB(skb)->hol_enqueue_valid = 1;
++}
++
++u64 ieee80211_hol_enqueue_time_ns(struct sk_buff *skb)
++{
++	const struct ieee80211_tx_info *info = IEEE80211_SKB_CB(skb);
++	u64 now_ns;
++	u32 elapsed;
++
++	if (!info->hol_enqueue_valid)
++		return 0;
++
++	/* CoDel stores ktime_get_ns() >> 10 in a wrapping u32. Do not infer an
++	 * enqueue time when the signed CoDel range (about 36 minutes) is exceeded.
++	 */
++	now_ns = ktime_get_ns();
++	elapsed = (u32)(now_ns >> CODEL_SHIFT) - info->control.enqueue_time;
++	if (elapsed >= BIT(31))
++		return 0;
++
++	return now_ns - ((u64)elapsed << CODEL_SHIFT);
++}
++EXPORT_SYMBOL_GPL(ieee80211_hol_enqueue_time_ns);
+ 
+ static u32 codel_skb_len_func(const struct sk_buff *skb)
+ {
+diff --git a/drivers/net/wireless/ath/ath9k/ath9k.h b/drivers/net/wireless/ath/ath9k/ath9k.h
+--- a/drivers/net/wireless/ath/ath9k/ath9k.h
++++ b/drivers/net/wireless/ath/ath9k/ath9k.h
+@@ -222,6 +222,7 @@
+ 	bool stale;
+ 	u16 seqno;
+ 	u16 bfs_dcf_frame_len;
++	u64 bfs_hol_enqueue_ns;
+ 	unsigned long bfs_paprd_timestamp;
+ };
+ 
+diff --git a/drivers/net/wireless/ath/ath9k/debug.h b/drivers/net/wireless/ath/ath9k/debug.h
+--- a/drivers/net/wireless/ath/ath9k/debug.h
++++ b/drivers/net/wireless/ath/ath9k/debug.h
+@@ -284,6 +284,10 @@
+ 	u32 success_time_us;
+ 	u32 failure_time_us;
+ 	u32 hw_send_timestamp;
++	u64 hol_enqueue_ns;
++	u64 hol_done_ns;
++	u8 hol_tid;
++	u16 hol_seq;
+ 	u64 samples;
+ 	u64 successes;
+ 	u64 failures;
+@@ -361,11 +365,38 @@
+ 	u64 overflow_samples;
+ };
+ 
++/* Queue-head service time, measured on the host monotonic clock. For a
++ * single FIFO TID, a packet becomes HOL at max(its mac80211 TXQ arrival,
++ * the preceding packet's final TX status). TX-status callback latency is
++ * included and must be checked against the TSF departure estimator.
++ */
++struct ath_dcf_hol_stats {
++	bool anchor_valid;
++	u8 last_tid;
++	u16 last_seq;
++	u64 last_enqueue_ns;
++	u64 last_done_ns;
++	u64 samples;
++	u64 sum_us;
++	u64 sum_sq_us2;
++	u32 min_us;
++	u32 max_us;
++	u64 anchor_skips;
++	u64 missing_enqueue;
++	u64 order_breaks;
++	u64 terminal_drop_breaks;
++	u64 config_breaks;
++	u64 excluded_breaks;
++	u64 invalid_deltas;
++	u64 overflow_samples;
++};
++
+ struct ath_dcf_peer_stats {
+ 	bool valid;
+ 	u8 addr[ETH_ALEN];
+ 	struct ath_dcf_attempt_stats ac[IEEE80211_NUM_ACS];
+ 	struct ath_dcf_delay_stats delay[IEEE80211_NUM_ACS];
++	struct ath_dcf_hol_stats hol[IEEE80211_NUM_ACS];
+ };
+ 
+ struct ath_dcf_measurement {
+@@ -406,6 +437,10 @@
+ 			     const struct ath_tx_status *ts,
+ 			     const struct ath_txq *txq,
+ 			     struct ath_node *an);
++u64 ath_debug_dcf_hol_enqueue_time(struct ath_softc *sc, struct sk_buff *skb);
++void ath_debug_dcf_hol_exclude_tx(struct ath_softc *sc,
++				  const struct ath_txq *txq,
++				  struct ath_node *an);
+ void ath_debug_dcf_peer_add(struct ath_softc *sc, struct ath_node *an);
+ void ath_debug_dcf_peer_remove(struct ath_softc *sc, struct ath_node *an);
+ void ath_debug_stat_rx(struct ath_softc *sc, struct ath_rx_status *rs);
+@@ -455,6 +490,16 @@
+ 					    struct ath_node *an)
+ {
+ }
++static inline u64 ath_debug_dcf_hol_enqueue_time(struct ath_softc *sc,
++						   struct sk_buff *skb)
++{
++	return 0;
++}
++static inline void ath_debug_dcf_hol_exclude_tx(struct ath_softc *sc,
++						 const struct ath_txq *txq,
++						 struct ath_node *an)
++{
++}
+ static inline void ath_debug_dcf_peer_add(struct ath_softc *sc,
+ 					  struct ath_node *an)
+ {
+diff --git a/drivers/net/wireless/ath/ath9k/debug.c b/drivers/net/wireless/ath/ath9k/debug.c
+--- a/drivers/net/wireless/ath/ath9k/debug.c
++++ b/drivers/net/wireless/ath/ath9k/debug.c
+@@ -1246,6 +1246,74 @@
+ }
+ 
+ static void
++ath9k_dcf_hol_accumulate(struct ath_dcf_hol_stats *hol,
++			const struct ath_dcf_timing_sample *sample)
++{
++	u64 start_ns, delta_us, delta_sq, sum_us, sum_sq_us2;
++
++	if (!sample->acked) {
++		hol->anchor_valid = false;
++		hol->terminal_drop_breaks++;
++		return;
++	}
++	if (!sample->hol_enqueue_ns) {
++		hol->anchor_valid = false;
++		hol->missing_enqueue++;
++		return;
++	}
++	if (sample->hol_enqueue_ns >= sample->hol_done_ns) {
++		hol->anchor_valid = false;
++		hol->invalid_deltas++;
++		return;
++	}
++
++	if (hol->anchor_valid) {
++		/* A second TID or non-FIFO completion cannot identify this
++		 * packet's queue-head transition from the previous departure.
++		 */
++		if (sample->hol_tid != hol->last_tid ||
++		    sample->hol_seq != ((hol->last_seq + 1) & 0xfff) ||
++		    sample->hol_enqueue_ns < hol->last_enqueue_ns) {
++			hol->order_breaks++;
++			goto anchor;
++		}
++		start_ns = max(sample->hol_enqueue_ns, hol->last_done_ns);
++		if (sample->hol_done_ns <= start_ns) {
++			hol->invalid_deltas++;
++			goto anchor;
++		}
++		delta_us = div_u64(sample->hol_done_ns - start_ns,
++				    NSEC_PER_USEC);
++		if (!delta_us || delta_us > U32_MAX) {
++			hol->invalid_deltas++;
++			goto anchor;
++		}
++		delta_sq = delta_us * delta_us;
++		if (check_add_overflow(hol->sum_us, delta_us, &sum_us) ||
++		    check_add_overflow(hol->sum_sq_us2, delta_sq,
++				   &sum_sq_us2)) {
++			hol->overflow_samples++;
++			goto anchor;
++		}
++		hol->sum_us = sum_us;
++		hol->sum_sq_us2 = sum_sq_us2;
++		if (!hol->samples || delta_us < hol->min_us)
++			hol->min_us = delta_us;
++		if (delta_us > hol->max_us)
++			hol->max_us = delta_us;
++		hol->samples++;
++	} else {
++		hol->anchor_skips++;
++	}
++anchor:
++	hol->last_enqueue_ns = sample->hol_enqueue_ns;
++	hol->last_done_ns = sample->hol_done_ns;
++	hol->last_tid = sample->hol_tid;
++	hol->last_seq = sample->hol_seq;
++	hol->anchor_valid = true;
++}
++
++static void
+ ath9k_dcf_measurement_tx_locked(struct ath_softc *sc, struct ath_node *an,
+ 				const struct ath_txq *txq,
+ 				const struct ath_dcf_timing_sample *sample,
+@@ -1269,6 +1337,8 @@
+ 		if (peer) {
+ 			peer->delay[ac].anchor_valid = false;
+ 			peer->delay[ac].config_breaks++;
++			peer->hol[ac].anchor_valid = false;
++			peer->hol[ac].config_breaks++;
+ 		}
+ 		return;
+ 	}
+@@ -1278,6 +1348,7 @@
+ 		ath9k_dcf_accumulate_attempts(&peer->ac[ac], sample, delta);
+ 		ath9k_dcf_delay_accumulate(&peer->delay[ac], sample,
+ 					   txq->axq_depth > 0);
++		ath9k_dcf_hol_accumulate(&peer->hol[ac], sample);
+ 	}
+ }
+ 
+@@ -1295,6 +1366,8 @@
+ 		if (peer) {
+ 			peer->delay[txq->mac80211_qnum].anchor_valid = false;
+ 			peer->delay[txq->mac80211_qnum].excluded_breaks++;
++			peer->hol[txq->mac80211_qnum].anchor_valid = false;
++			peer->hol[txq->mac80211_qnum].excluded_breaks++;
+ 		}
+ 	}
+ }
+@@ -1328,12 +1401,16 @@
+ 
+ 	if (txq->mac80211_qnum < 0 ||
+ 	    txq->mac80211_qnum >= IEEE80211_NUM_ACS ||
+-	    txq->axq_qnum >= ATH9K_NUM_TX_QUEUES ||
+-	    !ieee80211_is_data_present(hdr->frame_control) ||
++	    txq->axq_qnum >= ATH9K_NUM_TX_QUEUES)
++		return;
++	if (!ieee80211_is_data_present(hdr->frame_control) ||
+ 	    is_multicast_ether_addr(hdr->addr1) ||
+ 	    (tx_info->flags & IEEE80211_TX_CTL_NO_ACK))
+-		return;
++		goto exclude;
+ 	if (bf_isampdu(bf))
++		goto exclude;
++	if (ieee80211_has_morefrags(hdr->frame_control) ||
++	    (le16_to_cpu(hdr->seq_ctrl) & IEEE80211_SCTL_FRAG))
+ 		goto exclude;
+ 
+ 	error_status = ts->ts_status & ATH9K_TXERR_MASK;
+@@ -1438,6 +1515,12 @@
+ 		sample.failure_time_us = 0;
+ 	}
+ 	sample.hw_send_timestamp = ts->ts_tstamp;
++	sample.hol_enqueue_ns = bf->bf_state.bfs_hol_enqueue_ns;
++	sample.hol_done_ns = ktime_get_ns();
++	sample.hol_tid = ieee80211_is_data_qos(hdr->frame_control) ?
++			 (*ieee80211_get_qos_ctl(hdr) & IEEE80211_QOS_CTL_TID_MASK) :
++			 0xff;
++	sample.hol_seq = le16_to_cpu(hdr->seq_ctrl) >> 4;
+ 
+ 	measure_sample = (capture_state & ATH_DCF_CAPTURE_MODE_MASK) ==
+ 			 ATH_DCF_CAPTURE_MEASUREMENT && sample.success_time_us &&
+@@ -1489,6 +1572,28 @@
+ 	if (!(state & ATH_DCF_CAPTURE_MODE_MASK))
+ 		return;
+ 	ath9k_dcf_timing_tx(sc, bf, ts, txq, an, state);
++}
++
++u64 ath_debug_dcf_hol_enqueue_time(struct ath_softc *sc, struct sk_buff *skb)
++{
++	if (!READ_ONCE(sc->debug.dcf_measurement.running))
++		return 0;
++	return ieee80211_hol_enqueue_time_ns(skb);
++}
++
++void ath_debug_dcf_hol_exclude_tx(struct ath_softc *sc,
++				  const struct ath_txq *txq,
++				  struct ath_node *an)
++{
++	struct ath_dcf_measurement *measurement = &sc->debug.dcf_measurement;
++
++	if (!READ_ONCE(measurement->running) ||
++	    txq->mac80211_qnum < 0 ||
++	    txq->mac80211_qnum >= IEEE80211_NUM_ACS)
++		return;
++	spin_lock(&measurement->lock);
++	ath9k_dcf_measurement_exclude_locked(sc, an, txq);
++	spin_unlock(&measurement->lock);
+ }
+ 
+ static const char *ath9k_dcf_capture_name(u32 state)
+@@ -1655,7 +1760,7 @@
+ 
+ 	seq_puts(file, "version=2 units=us scope=tx-attempt-window ");
+ 	seq_printf(file,
+-		   "running=%u generation=%u elapsed_us=%llu capture=%s "
++		   "running=%u generation=%u elapsed_us=%llu capture=%s hol_abi=1 "
+ 		   "peer_capacity=%u peer_overflow=%llu "
+ 		   "config_mismatches=%llu excluded_samples=%llu\n",
+ 		   snapshot->running, snapshot->generation,
+@@ -1670,6 +1775,12 @@
+ 		   "modeled_exchange_excludes_backoff_and_busy_freeze;"
+ 		   "hol_delay_is_per_peer_saturated_tsf_departure_delta;"
+ 		   "hol_delay_requires_fixed_signature_and_queue_continuity;"
++		   "hol_service_start=max(mac80211_txq_enqueue,previous_tx_status);"
++		   "hol_service_end=ath9k_acked_tx_status;"
++		   "hol_service_condition=ack_success;"
++		   "hol_service_clock=host_monotonic;"
++		   "hol_service_requires_one_fifo_tid_and_callback_calibration;"
++		   "hol_service_is_not_hardware_tsf_exact;"
+ 		   "retry_stage_mapping_requires_monitor_validation\n");
+ 
+ 	for (ac = 0; ac < IEEE80211_NUM_ACS; ac++) {
+@@ -1726,6 +1837,7 @@
+ 		for (ac = 0; ac < IEEE80211_NUM_ACS; ac++) {
+ 			const struct ath_dcf_attempt_stats *s = &peer->ac[ac];
+ 			const struct ath_dcf_delay_stats *delay = &peer->delay[ac];
++			const struct ath_dcf_hol_stats *hol = &peer->hol[ac];
+ 
+ 			if (!s->packets)
+ 				continue;
+@@ -1745,7 +1857,20 @@
+ 				   "delay_config_breaks=%llu "
+ 				   "delay_excluded_breaks=%llu "
+ 				   "delay_invalid_deltas=%llu "
+-				   "delay_overflow_samples=%llu\n",
++				   "delay_overflow_samples=%llu "
++				   "hol_service_samples=%llu "
++				   "hol_service_sum_us=%llu "
++				   "hol_service_sum_sq_us2=%llu "
++				   "hol_service_min_us=%u "
++				   "hol_service_max_us=%u "
++				   "hol_service_anchor_skips=%llu "
++				   "hol_service_missing_enqueue=%llu "
++				   "hol_service_order_breaks=%llu "
++				   "hol_service_drop_breaks=%llu "
++				   "hol_service_config_breaks=%llu "
++				   "hol_service_excluded_breaks=%llu "
++				   "hol_service_invalid_deltas=%llu "
++				   "hol_service_overflow_samples=%llu\n",
+ 				   peer->addr, ath9k_edca_ac_names[ac],
+ 				   (unsigned long long)s->packets,
+ 				   (unsigned long long)s->packet_successes,
+@@ -1768,7 +1893,19 @@
+ 				   (unsigned long long)delay->config_breaks,
+ 				   (unsigned long long)delay->excluded_breaks,
+ 				   (unsigned long long)delay->invalid_deltas,
+-				   (unsigned long long)delay->overflow_samples);
++				   (unsigned long long)delay->overflow_samples,
++				   (unsigned long long)hol->samples,
++				   (unsigned long long)hol->sum_us,
++				   (unsigned long long)hol->sum_sq_us2,
++				   hol->min_us, hol->max_us,
++				   (unsigned long long)hol->anchor_skips,
++				   (unsigned long long)hol->missing_enqueue,
++				   (unsigned long long)hol->order_breaks,
++				   (unsigned long long)hol->terminal_drop_breaks,
++				   (unsigned long long)hol->config_breaks,
++				   (unsigned long long)hol->excluded_breaks,
++				   (unsigned long long)hol->invalid_deltas,
++				   (unsigned long long)hol->overflow_samples);
+ 		}
+ 	}
+ 
+diff --git a/drivers/net/wireless/ath/ath9k/xmit.c b/drivers/net/wireless/ath/ath9k/xmit.c
+--- a/drivers/net/wireless/ath/ath9k/xmit.c
++++ b/drivers/net/wireless/ath/ath9k/xmit.c
+@@ -710,6 +710,9 @@
+ 		if (ts->ts_status & (ATH9K_TXERR_FILT | ATH9K_TXERR_XRETRY))
+ 			tid->clear_ps_filter = true;
+ 	}
++
++	if (flush || bf_isampdu(bf))
++		ath_debug_dcf_hol_exclude_tx(sc, txq, an);
+ 
+ 	if (!bf_isampdu(bf)) {
+ 		if (!flush) {
+@@ -2410,6 +2413,7 @@
+ 		 struct ath_tx_control *txctl)
+ {
+ 	struct ieee80211_tx_info *info = IEEE80211_SKB_CB(skb);
++	u64 hol_enqueue_ns;
+ 	struct ieee80211_sta *sta = txctl->sta;
+ 	struct ieee80211_vif *vif = info->control.vif;
+ 	struct ath_frame_info *fi = get_frame_info(skb);
+@@ -2422,6 +2426,7 @@
+ 	int q, ret;
+ 
+ 	ps_resp = !!(info->control.flags & IEEE80211_TX_CTRL_PS_RESPONSE);
++	hol_enqueue_ns = ath_debug_dcf_hol_enqueue_time(sc, skb);
+ 
+ 	ret = ath_tx_prepare(hw, skb, txctl);
+ 	if (ret)
+@@ -2459,6 +2464,7 @@
+ 	}
+ 
+ 	bf->bf_state.bfs_paprd = txctl->paprd;
++	bf->bf_state.bfs_hol_enqueue_ns = hol_enqueue_ns;
+ 
+ 	if (txctl->paprd)
+ 		bf->bf_state.bfs_paprd_timestamp = jiffies;

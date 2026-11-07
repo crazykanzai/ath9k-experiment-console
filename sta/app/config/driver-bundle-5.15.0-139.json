@@ -1,0 +1,11 @@
+{
+  "kernel": "5.15.0-139-generic",
+  "basic_retry_abi": 2,
+  "hol_abi": 1,
+  "modules": {
+    "mac80211": {"srcversion": "168678FD4A79A97427B7B81", "sha256": "c5cc7cb2c371d3f87d1cc51f9cd596ae8cea2a0f13e706301c0b52a19c5a6a9f"},
+    "ath9k_hw": {"srcversion": "249364B7935332A950C8E4E", "sha256": "9a2b6b6909cef02a66318cb81fd43d5e7364ed99b3d0112d61895acc249c0e4f"},
+    "ath9k_common": {"srcversion": "D7717E4CD331370FAAFBEF7", "sha256": "6047bba1edf7598af5107329ac07d6857eea988c5d341012ded6d86bc0b5bd32"},
+    "ath9k": {"srcversion": "C6E744C117E5F6ABADF932F", "sha256": "270d53c6d955b7451983b6b97f0627b98b596a44e582164fe4313ae8c1a9dee1"}
+  }
+}

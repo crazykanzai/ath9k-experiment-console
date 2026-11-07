@@ -1,0 +1,73 @@
+diff --git a/drivers/net/wireless/ath/ath9k/debug.c b/drivers/net/wireless/ath/ath9k/debug.c
+--- a/drivers/net/wireless/ath/ath9k/debug.c
++++ b/drivers/net/wireless/ath/ath9k/debug.c
+@@ -2783,6 +2783,9 @@ int ath9k_init_debug(struct ath_hw *ah)
+ 				    read_file_queues);
+ 	debugfs_create_file("edca_ctrl", 0600, sc->debug.debugfs_phy,
+ 			    sc, &fops_edca_ctrl);
++	debugfs_create_u32("basic_access_override", 0600,
++			   sc->debug.debugfs_phy,
++			   &sc->debug.basic_access_override);
+ 	debugfs_create_file("dcf_timing", 0400, sc->debug.debugfs_phy,
+ 			    sc, &fops_dcf_timing);
+ 	debugfs_create_file("dcf_stats", 0600, sc->debug.debugfs_phy,
+diff --git a/drivers/net/wireless/ath/ath9k/debug.h b/drivers/net/wireless/ath/ath9k/debug.h
+--- a/drivers/net/wireless/ath/ath9k/debug.h
++++ b/drivers/net/wireless/ath/ath9k/debug.h
+@@ -421,6 +421,8 @@ struct ath_dcf_measurement {
+ struct ath9k_debug {
+ 	struct dentry *debugfs_phy;
+ 	u32 regidx;
++	/* Experiment-only override: 1 disables protection for legacy QoS data. */
++	u32 basic_access_override;
+ 	struct ath_stats stats;
+ 	struct ath_dcf_timing_debug dcf_timing;
+ 	struct ath_dcf_measurement dcf_measurement;
+diff --git a/drivers/net/wireless/ath/ath9k/xmit.c b/drivers/net/wireless/ath/ath9k/xmit.c
+--- a/drivers/net/wireless/ath/ath9k/xmit.c
++++ b/drivers/net/wireless/ath/ath9k/xmit.c
+@@ -1229,6 +1229,7 @@ static void ath_buf_set_rate(struct ath_softc *sc, struct ath_buf *bf,
+ 	struct ieee80211_hdr *hdr;
+ 	struct ath_frame_info *fi = get_frame_info(bf->bf_mpdu);
+ 	u32 rts_thresh = sc->hw->wiphy->rts_threshold;
++	bool force_basic = false;
+ 	int i;
+ 	u8 rix = 0;
+ 
+@@ -1237,6 +1238,20 @@ static void ath_buf_set_rate(struct ath_softc *sc, struct ath_buf *bf,
+ 	rates = bf->rates;
+ 	hdr = (struct ieee80211_hdr *)skb->data;
+ 
++#ifdef CONFIG_ATH9K_DEBUGFS
++	/*
++	 * In this experiment, minstrel's fallback rates and ERP protection can
++	 * request RTS/CTS even with the configured RTS threshold disabled.  Keep
++	 * the normal driver behavior by default; a deliberate debugfs opt-in
++	 * removes both protections only for legacy unicast QoS data frames.
++	 */
++	force_basic = READ_ONCE(sc->debug.basic_access_override) == 1 &&
++		      rts_thresh == (u32)-1 &&
++		      ieee80211_is_data_qos(hdr->frame_control) &&
++		      !is_multicast_ether_addr(hdr->addr1) &&
++		      !bf_isampdu(bf);
++#endif
++
+ 	/* set dur_update_en for l-sig computation except for PS-Poll frames */
+ 	info->dur_update = !ieee80211_is_pspoll(hdr->frame_control);
+ 	info->rtscts_rate = fi->rtscts_rate;
+@@ -1261,10 +1276,13 @@ static void ath_buf_set_rate(struct ath_softc *sc, struct ath_buf *bf,
+ 				rts = true;
+ 		}
+ 
+-		if (rts || rates[i].flags & IEEE80211_TX_RC_USE_RTS_CTS) {
++		if ((!force_basic || (rates[i].flags & IEEE80211_TX_RC_MCS)) &&
++		    (rts || rates[i].flags & IEEE80211_TX_RC_USE_RTS_CTS)) {
+ 			info->rates[i].RateFlags |= ATH9K_RATESERIES_RTS_CTS;
+ 			info->flags |= ATH9K_TXDESC_RTSENA;
+-		} else if (rates[i].flags & IEEE80211_TX_RC_USE_CTS_PROTECT) {
++		} else if ((!force_basic ||
++			    (rates[i].flags & IEEE80211_TX_RC_MCS)) &&
++			   (rates[i].flags & IEEE80211_TX_RC_USE_CTS_PROTECT)) {
+ 			info->rates[i].RateFlags |= ATH9K_RATESERIES_RTS_CTS;
+ 			info->flags |= ATH9K_TXDESC_CTSENA;
+ 		}
