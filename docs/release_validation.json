@@ -29,7 +29,7 @@
   "traffic_started": false,
   "real_node_acceptance": false,
   "browser_visual_QA_this_migration": false,
-  "Linux_build_this_migration": "pending CI",
+  "Linux_build_this_migration": "GitHub Actions Ubuntu make -C sta/app passed on initial commit",
   "notes": [
     "No original raw data or validity rewritten.",
     "No .ko artifacts shipped.",

@@ -26,7 +26,7 @@ def main():
             except SyntaxError as e:problems.append('syntax: '+rel+' '+str(e))
     for forbidden in ['launcher.py','ap/app.py','sta/tools/edca_hw_server.py','sta/tools/mode-select.html','sta/tools/edca-sta-explorer.html']:
         if (ROOT/forbidden).exists():problems.append('excluded old UI: '+forbidden)
-    if 'Fixed-four reference engine is disabled' not in (ROOT/'experiments/sync_run.py').read_text():problems.append('reference controller guard missing')
+    if 'Fixed-four reference engine is disabled' not in (ROOT/'experiments/sync_run.py').read_text(encoding='utf-8-sig'):problems.append('reference controller guard missing')
     for p in (ROOT/'labconsole/examples').glob('replay_*.json'):
         data=json.loads(p.read_text(encoding='utf-8'))
         if data.get('schema')!='apstaselect.history-replay.v1':problems.append('bad replay: '+p.name)
