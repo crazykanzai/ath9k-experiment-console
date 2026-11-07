@@ -76,7 +76,7 @@ class IntervalTests(unittest.TestCase):
         with self.assertRaises(ValueError):parse_hardware_cw(text.replace('verified','mismatch'))
 
     def test_remote_probe_has_no_parameter_writes_or_traffic(self):
-        code=(Path(__file__).resolve().parents[1]/'readonly_probe.py').read_text()
+        code=(Path(__file__).resolve().parents[1]/'readonly_probe.py').read_text(encoding='utf-8')
         for forbidden in ['write_text(', 'iperf', 'set txpower', 'set rts', 'regval', 'regidx\'']:
             self.assertNotIn(forbidden,code)
 

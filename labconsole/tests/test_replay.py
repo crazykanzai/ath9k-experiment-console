@@ -92,16 +92,16 @@ class ReplayTests(unittest.TestCase):
     def test_missing_bins_or_boundary_mismatch_not_fabricated(self):
         source = fixture(self.root/'source')
         leaf = source.parent/'round01/metrics.json'
-        original = json.loads(leaf.read_text())
+        original = json.loads(leaf.read_text(encoding='utf-8'))
         for invalid in [None, {}, {'STA1': [1.]*209, 'STA2': [1.]*210}]:
             v=copy.deepcopy(original);v['full_goodput_series_Mbps']=invalid;write(leaf,v)
             with self.assertRaises(ValueError):build_replay(source)
         write(leaf,original)
-        p=source.parent/'round01/manifest.json';v=json.loads(p.read_text());v['measurement_start_ns']+=1;write(p,v)
+        p=source.parent/'round01/manifest.json';v=json.loads(p.read_text(encoding='utf-8'));v['measurement_start_ns']+=1;write(p,v)
         with self.assertRaises(ValueError):build_replay(source)
 
     def test_duplicates_and_nonfinite_values_rejected(self):
-        source=fixture(self.root/'source');batch=json.loads(source.read_text());batch['rows']*=2;batch['valid_windows']=2;write(source,batch)
+        source=fixture(self.root/'source');batch=json.loads(source.read_text(encoding='utf-8'));batch['rows']*=2;batch['valid_windows']=2;write(source,batch)
         with self.assertRaises(ValueError):build_replay(source)
         source.write_text('{"rows": NaN}')
         with self.assertRaises(ValueError):build_replay(source)

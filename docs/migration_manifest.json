@@ -141,21 +141,21 @@
       "source": "labconsole/tests/test_console.py",
       "destination": "labconsole/tests/test_console.py",
       "source_sha256": "9a285f554daa632ff514e96bce4e15b8e472ff9ee77c738e7aae9df2e39aea12",
-      "published_sha256": "9a285f554daa632ff514e96bce4e15b8e472ff9ee77c738e7aae9df2e39aea12",
+      "published_sha256": "06e6c705af484f031984f11b3aec30e330e8f4a04ed64b46f0c5c74c45ea7c4d",
       "adaptation": null
     },
     {
       "source": "labconsole/tests/test_live.py",
       "destination": "labconsole/tests/test_live.py",
       "source_sha256": "6a202145e419ccaf7cc6dac38fc7e3ca870b493994242a4081180ba0b5cebb84",
-      "published_sha256": "6a202145e419ccaf7cc6dac38fc7e3ca870b493994242a4081180ba0b5cebb84",
+      "published_sha256": "8e814a00bfd1912046d7562e67c7ed5c9dd08766d37d18b33c8fabd4dcee91bf",
       "adaptation": null
     },
     {
       "source": "labconsole/tests/test_replay.py",
       "destination": "labconsole/tests/test_replay.py",
       "source_sha256": "0969950dc26b5d2d195059f0cc2d2144724dd27190d7e385306116b074b1d223",
-      "published_sha256": "0969950dc26b5d2d195059f0cc2d2144724dd27190d7e385306116b074b1d223",
+      "published_sha256": "57ab9c77cb68a6f9c0c363d252158e65d444e944cee0b5567857cc49f446b4a8",
       "adaptation": null
     },
     {
@@ -204,7 +204,7 @@
       "source": "start_console.py",
       "destination": "start_console.py",
       "source_sha256": "4a1e34b58bc422bbbf23a7bac4299dcbcd4147af9ca222d33f9afcf490445219",
-      "published_sha256": "4a1e34b58bc422bbbf23a7bac4299dcbcd4147af9ca222d33f9afcf490445219",
+      "published_sha256": "dec1b797e51ed1d0f8a02ae0260f9b355fea569b5c3f9d3e6a575a3258eed079",
       "adaptation": null
     },
     {

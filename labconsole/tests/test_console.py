@@ -96,10 +96,10 @@ class LifecycleTests(unittest.TestCase):
         with patch.object(socket.socket,'connect',side_effect=AssertionError('network forbidden')):
             execute(self.store.root,job)
         state=self.store.job(job);self.assertEqual(state['status'],'completed')
-        m=json.loads((self.store.root/'runs'/job/'manifest.json').read_text())
+        m=json.loads((self.store.root/'runs'/job/'manifest.json').read_text(encoding='utf-8'))
         self.assertEqual(m['formal_valid'],0);self.assertEqual(m['simulated_complete'],4)
         self.assertEqual(m['remote_actions'],[])
-        rows=json.loads((self.store.root/'runs'/job/'simulation_records.json').read_text())
+        rows=json.loads((self.store.root/'runs'/job/'simulation_records.json').read_text(encoding='utf-8'))
         self.assertTrue(all(x['S_Mbps'] is None and x['p_ACK_original'] is None for x in rows))
         # Finished job releases reservations; repeating execute does nothing.
         execute(self.store.root,job)
@@ -108,7 +108,7 @@ class LifecycleTests(unittest.TestCase):
     def test_gate_failure_stops_without_replacement(self):
         job=self.create(fault_at=2);execute(self.store.root,job)
         self.assertEqual(self.store.job(job)['status'],'gate_failed')
-        rows=json.loads((self.store.root/'runs'/job/'simulation_records.json').read_text())
+        rows=json.loads((self.store.root/'runs'/job/'simulation_records.json').read_text(encoding='utf-8'))
         self.assertEqual(len(rows),2);self.assertEqual(rows[-1]['status'],'simulated_gate_failure')
 
     def test_tampered_plan_refused(self):
@@ -178,7 +178,7 @@ class ReportTests(unittest.TestCase):
     def test_reject_duplicate_rows_invalid_and_nan(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);source=root/'metrics.json';fixture(source)
-            v=json.loads(source.read_text());v['rows'][1]['order']=v['rows'][0]['order'];source.write_text(json.dumps(v))
+            v=json.loads(source.read_text(encoding='utf-8'));v['rows'][1]['order']=v['rows'][0]['order'];source.write_text(json.dumps(v))
             with self.assertRaises(ValueError):import_report(root/'output',source)
             source.write_text('{"bad":NaN}')
             with self.assertRaises(ValueError):import_report(root/'output',source)
