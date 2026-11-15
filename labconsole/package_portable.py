@@ -1,4 +1,4 @@
-"""Build a credential-free standalone offline console archive, without Git/.venv."""
+"""Build a credential-free standalone demonstration console archive, without Git/.venv."""
 import argparse
 import hashlib
 import json
@@ -13,12 +13,14 @@ def main():
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     paths = [root / name for name in ['start_console.py', 'start_console.bat', 'EXPERIMENT_RULES.md']]
+    paths += list((root/'experiments').glob('*.py'))
+    paths += [root/name for name in ('setup_console.bat','requirements-observer.txt') if (root/name).is_file()]
     paths += [p for p in (root / 'labconsole').rglob('*') if p.is_file() and '__pycache__' not in p.parts
               and p.suffix in ['.py', '.md', '.html', '.css', '.js', '.json'] and 'acceptance' not in p.parts]
     content = {str(p.relative_to(root)).replace('\\', '/'): p.read_bytes() for p in sorted(paths)}
     hashes = {name: hashlib.sha256(raw).hexdigest() for name, raw in content.items()}
-    release = {'version': VERSION, 'mode': 'offline_only', 'requires': 'Python>=3.10 standard library',
-               'live_enabled': False, 'optional_readonly_SSH_observer': 'Paramiko; explicit CLI; field acceptance pending', 'files': hashes}
+    release = {'version': VERSION, 'mode': 'demo_only', 'requires': 'Python>=3.10 standard library',
+               'live_enabled': True, 'SSH_dependency': 'Paramiko; explicit user actions only', 'files': hashes}
     content['RELEASE.json'] = (json.dumps(release, ensure_ascii=False, indent=2) + '\n').encode()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(args.output, 'x', zipfile.ZIP_DEFLATED) as archive:

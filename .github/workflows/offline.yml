@@ -14,7 +14,7 @@ jobs:
         with:
           python-version: '3.11'
       - run: python tools/check_repository.py
-      - run: python -m unittest labconsole.tests.test_console labconsole.tests.test_replay labconsole.tests.test_live -v
+      - run: python -m unittest labconsole.tests.test_console labconsole.tests.test_preparation labconsole.tests.test_real_demo labconsole.tests.test_cw_control -v
   reference-analysis:
     runs-on: ubuntu-latest
     steps:

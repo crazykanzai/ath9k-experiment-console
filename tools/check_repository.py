@@ -27,9 +27,6 @@ def main():
     for forbidden in ['launcher.py','ap/app.py','sta/tools/edca_hw_server.py','sta/tools/mode-select.html','sta/tools/edca-sta-explorer.html']:
         if (ROOT/forbidden).exists():problems.append('excluded old UI: '+forbidden)
     if 'Fixed-four reference engine is disabled' not in (ROOT/'experiments/sync_run.py').read_text(encoding='utf-8-sig'):problems.append('reference controller guard missing')
-    for p in (ROOT/'labconsole/examples').glob('replay_*.json'):
-        data=json.loads(p.read_text(encoding='utf-8'))
-        if data.get('schema')!='apstaselect.history-replay.v1':problems.append('bad replay: '+p.name)
     print(json.dumps({'files_checked':len(files),'problems':problems,'node_connections':0},ensure_ascii=False,indent=2))
     raise SystemExit(bool(problems))
 

@@ -5,7 +5,6 @@ import json
 from pathlib import Path
 import re
 import shlex
-from analyze_retry_descriptors import decode
 
 
 def definitions(remote,module,o):

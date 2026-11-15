@@ -1,0 +1,49 @@
+{
+  "version": "0.5.0",
+  "date": "2026-11-11",
+  "core_tests": {
+    "passed": 79,
+    "failed": 0,
+    "added_preparation_tests": 16
+  },
+  "field": {
+    "scope": "six-node environment preparation only; no traffic, statistics window, CW pilot or automatic algorithm run",
+    "session_id": "ea0b49d9f171459983a2da8564483bc3",
+    "final_status": "ended",
+    "hold_seconds": 300,
+    "clock_sample_groups": 16,
+    "max_clock_envelope_ms": 2.275208,
+    "per_node_max_clock_envelope_ms": {
+      "AP": 1.566659,
+      "STA1": 2.275208,
+      "STA2": 1.671402,
+      "STA3": 1.865174,
+      "STA4": 1.727825,
+      "MON15": 1.222441
+    },
+    "cleanup_confirmed": true,
+    "original_time_config_restored_nodes": [
+      "AP",
+      "STA1",
+      "STA2",
+      "STA3",
+      "STA4",
+      "MON15"
+    ],
+    "persistent_module_changes": false,
+    "radio_fifo_baseline_retained": true,
+    "browser_refresh_did_not_restart": true,
+    "experiment_ready": false,
+    "credentials_persisted": false
+  },
+  "default_console": {
+    "port": 8790,
+    "version_verified": "0.5.0"
+  },
+  "limitations": [
+    "No traffic or air-mode/queue/trace acceptance",
+    "Reboot-to-preparation recovery not tested in this run",
+    "Interrupted-session recovery and failure cleanup tested with a fake backend",
+    "Current six-role registered hardware resources only"
+  ]
+}

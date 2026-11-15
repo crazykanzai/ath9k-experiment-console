@@ -8,6 +8,11 @@ ROLES = ['AP', 'STA1', 'STA2', 'STA3', 'STA4', 'MON15']
 FORBIDDEN = {'password', 'passwd', 'secret', 'token', 'private_key', 'sudo_password'}
 
 
+def enabled_roles(platform):
+    """Old snapshots require MON15; new opt-out is explicit and session-local."""
+    return tuple(r for r in ROLES if r!='MON15' or platform.get('monitor_enabled',True))
+
+
 def reject_secrets(value):
     if isinstance(value, dict):
         for k, v in value.items():
@@ -43,6 +48,8 @@ def validate_platform(raw):
         raise ValueError('平台档案须为JSON对象')
     reject_secrets(raw)
     p = copy.deepcopy(raw)
+    if type(p.get('monitor_enabled',True)) is not bool:
+        raise ValueError('monitor_enabled须为布尔值')
     if p.get('schema_version') != 1:
         raise ValueError('不支持的平台档案版本')
     if not isinstance(p.get('name'), str) or not 1 <= len(p['name']) <= 100:

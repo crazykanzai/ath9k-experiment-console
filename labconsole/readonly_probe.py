@@ -54,6 +54,8 @@ def dcf(base, peer):
     if head.get('hol_abi') != '1' or head.get('version') != '2':
         raise ValueError('unsupported DCF ABI')
     conf = tokens(next(x for x in rows if x.startswith('AC=BE ')))
+    if int(head.get('config_mismatches','0')) or int(conf.get('config_mismatches','0')):
+        raise ValueError('DCF configuration signature changed; counters cannot represent current CW')
     row = next((tokens(x) for x in rows if x.startswith('peer=') and tokens(x).get('peer','').lower()==peer.lower() and tokens(x).get('AC')=='BE'), None)
     if not row:
         return None

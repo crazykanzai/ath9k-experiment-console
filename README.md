@@ -1,76 +1,39 @@
-# ath9k Experiment Console
+# ath9k 自适应CW现场演示
 
-由控制机统一配置、观察和分析ath9k无线实验的平台。源自APSTASELECT，保留必要节点程序和测量方法，去掉每台节点上的旧STA/AP选择网页与旧上位机界面。
+本程序用于展示控制机统一准备设备、四STA打流、手动切换CW与自动调整CW的过程。导航仅保留使用说明、平台配置、环境准备、现场自适应演示。
 
-**当前版本：0.3.0迁移版。控制机总控可离线运行；正式实验执行、角色管理和新节点初始化尚未接入网页。** 不会因为打开页面而连接节点、配置无线或启动iperf。
+## 启动与操作
 
-## 快速开始
+首次在新电脑运行 `setup_console.bat`，日常双击 `start_console.bat`。运行期间保留控制台窗口。默认使用本机8790端口，受系统限制时自动分配可用端口并打开实际地址。凭据只在本次后台内存保存。
 
-要求Python 3.10以上。离线总控、历史演示与JSONL观察使用标准库，无需安装Streamlit。
+1. 平台配置：核对AP、四STA及控制机的有线地址和SSH账号；MON15空口旁证可选，未接入时标注未采集。
+2. 环境准备：连接设备 → 准备设备 → 同步时间并检查。配置授时后等待30秒并核验，随后即可就绪。
+3. 准备通过后进入现场演示，选择接入机制、上传集合、时长及逐STA初始W。启动后可逐STA设置目标W并点击“应用四台设置”，也可交给自动算法。
+4. 单轮结束后等“恢复已确认”，可直接换 Basic、RTS/CTS 或 W，再启动下一轮。控制台会继续守时。
+5. 全部演示结束后，回环境准备点击“结束使用并清理”。更新控制台时，清理完后在原终端按 Ctrl+C 退出，再运行启动器。
 
-```bash
-python start_console.py --open
-```
+若显示恢复未确认，输入密码并点击主页面“核对并清理中断会话”；不能直接删除设备占用。
 
-Windows也可双击`start_console.bat`。默认地址为`http://127.0.0.1:8790`。端口被占用时指定`--port 8791`。
+自动候选为统一W8/W16，各取得两个有效段后保持较好档；连续两段吞吐下降至少10%才重探，重探换档须提高超过5%。每轮时长可选1/5/10/20分钟。逐STA手动、停止后复用准备、曲线清除及历史记录保留。详见[当前演示说明](docs/DEMO_THROUGHPUT_UCB.md)。
 
-自选数据目录：
+逐STA自动公平约束搜索尚未实现，已保存[待实施方案](docs/FAIR_CW_PLAN_PENDING.md)；当前自动奖励仍仅为聚合吞吐。
 
-```bash
-python start_console.py --workspace ./workspace --open
-```
+## 范围
 
-控制台保持运行。默认工作区在用户本机应用数据目录，不在Git仓库中；切换电脑无需复制旧虚拟环境。
+已移除批量方案/离线任务演练、旧结果导入报告、历史回放、独立实时观察和离线合成CW演示，以及专属接口和示例数据。现场采集、自动策略和时间测量所需代码独立保留。真实演示记录在工作区 `real_demos`，环境准备记录在 `preparations`，配置及占用保存在SQLite；这些不是已删除的旧回放数据。
 
-## 现在能做什么
+启动程序不会自动连接节点或打流，不安装新驱动或改变持久配置。现有六节点部署和核验资源仍是现场使用前提；本程序不是裸机安装器。详细操作见 [现场演示](docs/LIVE_CW_DEMO.md) 和 [环境准备](docs/ENVIRONMENT_PREPARATION.md)。实验规则见 [EXPERIMENT_RULES](EXPERIMENT_RULES.md)。
 
-|功能|状态|
-|---|---|
-|平台档案、固定方案预览、模拟执行与停止|可用；模拟不产生测量数据|
-|历史回放|可用；含四批85窗发布用快照，路径已去除，数值/失败/NA保留|
-|实时观察|可用；只读跟随本机JSONL，显示区间速率/HoL/ACK代理/CW变化|
-|独立SSH只读采集适配器|已编写、未现场验收；须显式启动，不由网页自动调用|
-|正式实验网页执行|锁定；保留参考采集/分析引擎，尚未完成配置化接入|
-|新增任意节点、AP/STA角色分配、驱动初始化向导|已设计，待实现；当前配置仍为六角色、最多四业务STA|
-|实验中自动修改CW/智能算法|未实现控制动作；预留遥测事件协议|
-
-角色选择是日常操作；新机器首次驱动初始化是独立流程。普通STA关联无需本项目补丁，CW/HoL实验能力需要匹配的定制驱动。实验节点仍须先具备Linux、有线网络、SSH与必要权限。
-
-## 使用入口
-
-- **历史回放**：左侧07，选实验→读取→批次总览或单窗播放。HoL/概率只有整窗结果时只显示结果点，不伪造逐秒曲线。
-- **实时观察**：左侧08，接入独立采集器或未来算法正在追加的本机JSONL。暂停画面不停止业务；跨CW/计数重置/中断区间保持NA。详见[LIVE_TELEMETRY](labconsole/LIVE_TELEMETRY.md)。
-- **离线演练**：选择实验模板、生成封存计划、启动模拟；正式有效数始终0。
-- **节点源码与实验方法**：见[节点部署](docs/DEPLOYMENT.md)、[参考引擎](experiments/README.md)、[指标定义](docs/METRICS.md)。不要直接运行旧批次或把模拟通过当现场通过。
-
-## 项目结构
-
-```text
-labconsole/       控制机网页、离线任务、报告、回放、只读观察
-experiments/      已解耦的参考采集/分析模块及相关离线测试
-sta/app/          Linux节点C命令程序、驱动安装/校验支持
-sta/tools/        DCF解析（不含旧页面服务）
-sta/driver/       匹配内核源码片段、补丁、许可证与C测试
-configs/          无凭据的配置示例
-docs/             架构、部署、指标、迁移和状态
-tools/            发布前离线检查
-```
-
-旧Web页面/启动器、一次性构建/修复/回退和历史批次入口没有整体搬入。必要共用函数已提取，原项目与实验数据保持原处。迁移不是对既有驱动和理论方法进行重新硬件认证。
-
-## 开发与验收
+## 离线检查
 
 ```bash
-python -m unittest labconsole.tests.test_console labconsole.tests.test_replay labconsole.tests.test_live -v
-python tools/check_repository.py
+python -m unittest discover -s labconsole/tests
 ```
 
-参考分析测试需可选依赖：`python -m pip install -r requirements-analysis.txt`，随后`python -m unittest discover -s experiments -p "test_*.py" -v`。Linux专属flock/模块/C构建检查与Windows离线测试分开记录。CI不连接节点、不sudo安装模块、不打流。
-
-详细边界见[STATUS](docs/STATUS.md)。更多设备、角色管理和驱动向导见[ROADMAP](docs/ROADMAP.md)。正式实验必须遵守[EXPERIMENT_RULES](EXPERIMENT_RULES.md)。
+离线测试不等于现场带流验收。现有恢复门禁、统计NA与历史失败判定保留。
 
 ## 来源与许可证
 
-源项目：[tangshier47-collab/APSTASELECT](https://github.com/tangshier47-collab/APSTASELECT)。本次包含旧commit之后的工作区改动，逐文件来源和变换记录见[迁移说明](docs/MIGRATION.md)。新仓库不改旧远端或实验有效性。
+源项目：[tangshier47-collab/APSTASELECT](https://github.com/tangshier47-collab/APSTASELECT)。逐文件来源和变换记录见[迁移说明](docs/MIGRATION.md)。新仓库不改旧远端或实验有效性。
 
-本项目**没有为所有原创代码统一指定MIT/Apache等许可证**，公开可见不等于已授予任意再分发许可。保留原项目的[原创代码授权状态](LICENSES/ORIGINAL_APPLICATION_NOTICE.md)；Linux导入部分的SPDX、版权和[COPYING](sta/driver/COPYING)继续适用。详见[LICENSE](LICENSE.md)。
+本项目没有为所有原创代码统一指定MIT/Apache等许可证，公开可见不等于已授予任意再分发许可。保留[原创代码授权状态](LICENSES/ORIGINAL_APPLICATION_NOTICE.md)；Linux导入部分的SPDX、版权和[COPYING](sta/driver/COPYING)继续适用。详见[LICENSE](LICENSE.md)。

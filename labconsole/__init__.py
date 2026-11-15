@@ -1,2 +1,2 @@
-"""Portable laboratory console. Version 1 deliberately supports offline work only."""
-VERSION = '0.3.0'
+"""Portable laboratory console with bounded real demonstration sessions."""
+VERSION = '0.7.0'

@@ -6,4 +6,4 @@ if exist "%~dp0.venv\Scripts\python.exe" (
 ) else (
   py -3 "%~dp0start_console.py" --open %*
 )
-if errorlevel 1 pause
+pause

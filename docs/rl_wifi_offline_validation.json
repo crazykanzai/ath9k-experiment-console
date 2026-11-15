@@ -1,0 +1,54 @@
+{
+  "date": "2026-11-14",
+  "scope": "offline_only",
+  "source": "synthetic_toy_not_wifi_model",
+  "node_connections": 0,
+  "traffic_started": false,
+  "node_configuration_changed": false,
+  "console_entrypoints_changed": false,
+  "old_source_files_unchanged": 261,
+  "source_backup": "../控制台版本备份/20261114_164034_ReinWiFi轻量适配前",
+  "tests": {
+    "rl_system_python": {
+      "passed": 14,
+      "skipped": 0
+    },
+    "legacy_console_venv": {
+      "passed": 55,
+      "skipped": 0
+    },
+    "rl_console_venv": {
+      "passed": 11,
+      "skipped": 3,
+      "reason": "optional torch absent in console venv; all RL tests passed with system torch 2.6.0+cpu"
+    }
+  },
+  "offline_run": "workspace/rl_adaptation_offline_20261114_03",
+  "training_steps": 1200,
+  "optimizer_updates": 1169,
+  "holdout_episodes_per_policy": 5,
+  "figure_check": "SVG XML parsed; no browser visual QA",
+  "new_files": [
+    "rl_wifi/README.md",
+    "rl_wifi/__init__.py",
+    "rl_wifi/__main__.py",
+    "rl_wifi/policies.py",
+    "rl_wifi/probe_transport.py",
+    "rl_wifi/rtt.py",
+    "rl_wifi/spec.py",
+    "rl_wifi/synthetic.py",
+    "rl_wifi/tests/__init__.py",
+    "rl_wifi/tests/test_offline.py",
+    "rl_wifi/tests/test_policies.py",
+    "rl_wifi/tests/test_rtt.py",
+    "requirements-rl.txt",
+    "docs/RL_WIFI_OFFLINE.md"
+  ],
+  "limitations": [
+    "No hardware driver, SSH or webpage integration",
+    "RTT transport tested only with in-memory fake UDP endpoints",
+    "Synthetic QoS is not an ath9k simulator or evidence of hardware gain",
+    "Inference JSON is not a full training-resume checkpoint",
+    "Live reward, load and deadline values remain to be preregistered"
+  ]
+}
