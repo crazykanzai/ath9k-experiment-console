@@ -24,7 +24,8 @@ from reg_access import read_registers
 from cohort_node_capture import Capture
 from readonly_probe import parse_hardware_cw, dcf
 from air_timing import decode as air_decode
-from cw_policy import ACCESS_SETTINGS, LONG_DEMO_MODES, WINDOWS, STAS, air_mode_issue
+from cw_policy import (ACCESS_SETTINGS, LONG_DEMO_MODES, UNIFIED_GUARD_S, UNIFIED_SEGMENT_S,
+                       WINDOWS, STAS, air_mode_issue, cw_pair)
 
 SHARED='/run/lock/apstaselect-ath9k-regidx.lock'
 CONTROL='/run/lock/ath9k-console-cw-pilot.lock'
@@ -98,11 +99,21 @@ class Worker:
         if not re.fullmatch('[a-zA-Z0-9_]+',self.iface) or not re.fullmatch('phy[0-9]+',self.phy):raise ValueError('interface/PHY')
         if self.out.name!=self.role or self.out.parent.name!='ath9k-demo-'+c['id'] or not re.fullmatch('[a-f0-9]{32}',c['id']):raise ValueError('owned directory identity')
         profile=tuple(c[k] for k in ('warmup_s','measure_s','tail_s','segment_s'))
-        if c.get('mode') in LONG_DEMO_MODES:
-            timing_ok=profile==(5,600,5,20) if c['mode']=='continuous' else profile[0]==5 and profile[1] in (60,300,600,1200) and profile[2:]==(5,20)
+        valid_guard = (UNIFIED_GUARD_S if c.get('mode')=='unified'
+                       and profile[3]==UNIFIED_SEGMENT_S else 3)
+        if c.get('mode')=='unified':
+            warmup, measure, tail, segment = profile
+            timing_ok = (warmup == tail == 5 and measure in (60, 300, 600, 1200)
+                         and segment in (UNIFIED_SEGMENT_S, 20))
+        elif c.get('mode')=='continuous':
+            timing_ok = profile == (5, 600, 5, 20)
         else:
             timing_ok=profile[:3] in ((5,30,5),(5,60,5),(15,180,15)) and profile[3] in (10,15) and profile[1]%profile[3]==0
-        if c['initial_w'] not in WINDOWS or not timing_ok or c['guard_s']!=3:raise ValueError('timing/CW profile')
+        if c['initial_w'] not in WINDOWS or not timing_ok or c['guard_s']!=valid_guard:raise ValueError('timing/CW profile')
+        if 'initial_cw' in c:
+            if c.get('mode')!='unified' or self.role not in STAS or not isinstance(c['initial_cw'],dict):
+                raise ValueError('initial CW profile')
+            cw_pair(c['initial_cw'])
         self.total=sum(c[k] for k in ('warmup_s','measure_s','tail_s'))
         self.raw=(self.out/'worker_events.jsonl').open('x',buffering=1)
 
@@ -129,12 +140,17 @@ class Worker:
                     self.plan=m;self.state['plan']=m;self.plan_ready.set();self.emit('plan_received',T0_ns=m['T0_ns']);self.save()
                 elif op=='stage':
                     k=m['index'];expected=self.plan['T0_ns']+(self.c['warmup_s']+k*self.c['segment_s'])*10**9
-                    if type(k)!=int or not 1<=k<self.c['measure_s']//self.c['segment_s'] or m['W'] not in WINDOWS or m['apply_ns']!=expected or expected-time.time_ns()<2_000_000_000:
+                    field = 'CW' if 'CW' in m else 'W'
+                    setting = m[field]
+                    valid = (isinstance(setting,dict) and self.c.get('mode')=='unified' and 'W' not in m
+                             if field=='CW' else type(setting) is int and setting in WINDOWS)
+                    if type(k)!=int or not 1<=k<self.c['measure_s']//self.c['segment_s'] or not valid or m['apply_ns']!=expected or expected-time.time_ns()<2_000_000_000:
                         raise RuntimeError('CW command boundary/deadline gate')
+                    cw_pair(setting)
                     with self.rx_lock:
                         if k in self.staged:raise RuntimeError('duplicate CW segment command')
                         self.staged[k]=m
-                    self.emit('stage_received',index=k,W=m['W'],apply_ns=expected)
+                    self.emit('stage_received',index=k,apply_ns=expected,**{field:setting})
                 else:raise RuntimeError('unknown control message')
             raise RuntimeError('controller_EOF')
         except Exception as exc:
@@ -187,22 +203,24 @@ class Worker:
         (self.base/'basic_access_override').write_text(override+'\n')
 
     def set_cw(self,w,index=None,planned_ns=None):
+        cw = cw_pair(w)
+        fields = {'W':cw['cwmin']+1,'CW':cw} if isinstance(w,dict) else {'W':w}
         unchanged=(self.c.get('mode') in LONG_DEMO_MODES or self.c.get('generation_mode')=='mixed') and w==self.current_w
-        if not unchanged:self.emit('cw_requested',W=w,index=index,planned_ns=planned_ns)
+        if not unchanged:self.emit('cw_requested',index=index,planned_ns=planned_ns,**fields)
         def write():
             at=time.time_ns()
             if planned_ns is not None and abs(at-planned_ns)>100_000_000:raise RuntimeError('100ms CW boundary gate')
-            (self.base/'edca_ctrl').write_text(f'BE 3 {w-1} {8*w-1}\n')
+            (self.base/'edca_ctrl').write_text(f"BE 3 {cw['cwmin']} {cw['cwmax']}\n")
             return at,time.time_ns()
         verified_call_ns=time.time_ns()
         if unchanged and planned_ns is not None and abs(verified_call_ns-planned_ns)>100_000_000:
             raise RuntimeError('100ms CW boundary gate')
         write_ns,write_return_ns=(None,None) if unchanged else self.shared(write)
         after=self.be()
-        if [after[k] for k in ('hw_aifs','hw_cwmin','hw_cwmax')]!=['3',str(w-1),str(8*w-1)]:raise RuntimeError('CW hardware mismatch')
+        if [after[k] for k in ('hw_aifs','hw_cwmin','hw_cwmax')]!=['3',str(cw['cwmin']),str(cw['cwmax'])]:raise RuntimeError('CW hardware mismatch')
         self.current_w=w
-        self.emit('cw_verified',W=w,index=index,planned_ns=planned_ns,readback=after,
-                  write_call_ns=write_ns,write_return_ns=write_return_ns,verified_call_ns=verified_call_ns)
+        self.emit('cw_verified',index=index,planned_ns=planned_ns,readback=after,
+                  write_call_ns=write_ns,write_return_ns=write_return_ns,verified_call_ns=verified_call_ns,**fields)
 
     def launch(self,key,args):
         err=(self.out/(key+'.stderr')).open('x')
@@ -258,7 +276,7 @@ class Worker:
             self.state['xmit_before']=(self.base/'xmit').read_text()
             self.set_access(*ACCESS_SETTINGS[self.access_mode])
             self.emit('access_verified',access_mode=self.access_mode,settings=self.verify_access())
-            self.set_cw(self.c['initial_w'])
+            self.set_cw(self.c.get('initial_cw',self.c['initial_w']))
             self.capture=Capture(self.c['trace_spec'],self.out).start()
         elif self.role=='MON15':self.setup_monitor()
         elif self.role=='AP':
@@ -321,11 +339,11 @@ class Worker:
     def boundary(self,index,target):
         self.finish_stats(target)
         if index==self.c['measure_s']//self.c['segment_s']:return
-        if index==0:w=self.c['initial_w']
+        if index==0:w=self.c.get('initial_cw',self.c['initial_w'])
         else:
             with self.rx_lock:m=self.staged.pop(index,None)
             if m is None:raise RuntimeError('missing pre-staged CW command')
-            w=m['W']
+            w=m.get('CW',m.get('W'))
         self.set_cw(w,index,target)
 
     def stats_start(self,index,target):
@@ -379,7 +397,8 @@ class Worker:
             link=cmd(['iw','dev',self.iface,'link'])
             if 'Connected to '+self.c['ap_mac'] not in link:raise RuntimeError('sending STA association gate')
             be=self.be();q=(self.base/'queues').read_text();row=next((s for s in q.splitlines() if s.startswith('(BE):')),'')
-            if (be['hw_aifs'],be['hw_cwmin'],be['hw_cwmax'])!=('3',str(self.current_w-1),str(8*self.current_w-1)):
+            cw = cw_pair(self.current_w)
+            if (be['hw_aifs'],be['hw_cwmin'],be['hw_cwmax'])!=('3',str(cw['cwmin']),str(cw['cwmax'])):
                 raise RuntimeError('CW changed outside the scheduled segment')
             vals={k:int(v) for k,v in re.findall(r'(qdepth|pending):\s*(\d+)',row)}
             if set(vals)!={'qdepth','pending'}:raise RuntimeError('BE queue evidence parser')

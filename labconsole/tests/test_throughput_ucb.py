@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-from labconsole.cw_policy import STAS, WINDOWS, sta_windows, throughput_ucb
+from labconsole.cw_policy import STAS, WINDOWS, cw_pair, sta_windows, throughput_ucb
 from labconsole.real_demo import DemoHub, NS, Session, validate_request
 
 
@@ -29,23 +29,24 @@ class ThroughputUCBTests(unittest.TestCase):
             with self.assertRaises(ValueError):request(active_senders=senders)
         self.assertEqual(request(active_senders=['STA3','STA1','STA2'])['active_senders'],list(STAS[:3]))
 
-    def test_policy_only_two_arms_and_zero_is_not_missing(self):
+    def test_policy_only_three_arms_and_zero_is_not_missing(self):
         self.assertEqual(throughput_ucb([])[0],8)
         self.assertEqual(throughput_ucb([(8,0)])[0],16)
         _,_,rows = throughput_ucb([(8,0),(16,None),(16,math.nan),(16,-1),(16,True),(128,99)])
-        self.assertEqual([r['W'] for r in rows],[8,16])
+        self.assertEqual([r['W'] for r in rows],[8,16,32])
         self.assertEqual(rows[0]['count'],1)
         self.assertEqual(rows[0]['mean_Mbps'],0)
         self.assertEqual(rows[1]['count'],0)
-        self.assertEqual(throughput_ucb([(8,12),(16,9)])[0],8)
+        self.assertEqual(throughput_ucb([(8,12),(16,9)])[0],32)
+        self.assertEqual(throughput_ucb([(8,12),(16,9),(32,8)])[0],8)
 
     def test_forgetting_tracks_changed_rewards_and_missing_segments_age(self):
-        old = [(8,15),(16,2)]*3
-        changed = [(8,3),(16,12)]*3
+        old = [(8,15),(16,2),(32,8)]*2
+        changed = [(8,3),(16,12),(32,8)]*2
         self.assertEqual(throughput_ucb(old)[0],8)
         self.assertEqual(throughput_ucb(old+changed)[0],16)
         _,_,rows = throughput_ucb(old+[(8,None)]*6)
-        self.assertEqual([r['count'] for r in rows],[0,0])
+        self.assertEqual([r['count'] for r in rows],[0,0,0])
 
     def test_manual_mapping_dispatch_takeover_and_epoch_reset(self):
         mixed=dict(zip(STAS,(8,32,64,128)))
@@ -77,7 +78,7 @@ class ThroughputUCBTests(unittest.TestCase):
             s=Session(Path(folder),None,request(active_senders=list(STAS[:3])))
             s.air_ok=True
             s.state['points']=[dict(second=k,total_Mbps=0,
-                queue={n:[2,3] if n in STAS[:3] else [0,0] for n in STAS}) for k in range(9,21)]
+                queue={n:[2,3] if n in STAS[:3] else [0,0] for n in STAS}) for k in (8,9,10)]
             self.assertEqual(s.continuous_score(0),0)
             s.state['points'][0]['queue']['STA2']=[0,0]
             self.assertIsNone(s.continuous_score(0))
@@ -94,6 +95,39 @@ class ThroughputUCBTests(unittest.TestCase):
             self.assertIsNone(s.sample_point(2)['W'])
             s.samples[2]['STA3']['data']['BE']['hw_cwmin']=7
             with self.assertRaisesRegex(RuntimeError,'读回'):s.sample_point(2)
+
+    def test_independent_manual_pairs_and_full_profiles_on_auto_takeover(self):
+        initial={n:{'cwmin':3,'cwmax':limit} for n,limit in zip(STAS,(3,255,511,1023))}
+        for invalid in ({'cwmin':31,'cwmax':15},{'cwmin':2,'cwmax':15},{'cwmin':True,'cwmax':15}):
+            with self.assertRaises(ValueError):request(initial_per_STA_CW={**initial,'STA1':invalid})
+        with tempfile.TemporaryDirectory() as folder:
+            s=Session(Path(folder),None,request(initial_per_STA_CW=initial))
+            s.workers={n:Mock() for n in STAS}
+            s.send_stage(1,s.stages[0],115*NS)
+            for n in STAS:
+                s.workers[n].send.assert_called_once_with(dict(op='stage',index=1,CW=initial[n],apply_ns=115*NS))
+            s.samples[9]={'AP':{'data':{'udp_buckets':{}}},
+                **{n:{'data':{'BE':{f'hw_{k}':str(v) for k,v in cw.items()},'dcf':None,'qdepth':2,'pending':3}}
+                   for n,cw in initial.items()}}
+            self.assertEqual(s.sample_point(9)['per_STA_CW'],initial)
+            s.samples[9]['STA1']['data']['BE']['hw_cwmax']='63'
+            with self.assertRaisesRegex(RuntimeError,'读回'):s.sample_point(9)
+
+            s.state.update(status='running',T0_ns=100*NS)
+            s.state['points']=[{'second':10}]
+            s.continuous_score={0:12,1:10,2:11}.get
+            with patch('labconsole.real_demo.time.time_ns',return_value=110*NS):
+                s.request_control('adapt')
+            for index,w,minimum,maximum in ((1,8,7,63),(2,16,15,127),(3,32,31,255)):
+                settings=s.online_choice(index)[0]
+                self.assertEqual(settings,dict.fromkeys(STAS,w))
+                at=(105+index*10)*NS
+                s.send_stage(index,settings,at)
+                for n in STAS:
+                    worker=s.workers[n]
+                    self.assertEqual(worker.send.call_args.args[0],dict(op='stage',index=index,W=w,apply_ns=at))
+                    self.assertEqual(cw_pair(settings[n]),{'cwmin':minimum,'cwmax':maximum})
+            self.assertEqual(s.state['control']['arms'],[8,16,32])
 
     def test_hub_validates_maps_and_pending_commands_still_exclude_one_another(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -114,10 +148,13 @@ class ThroughputUCBTests(unittest.TestCase):
         module=RealDemoTests().worker_module()
         for role,active in [('STA1',True),('STA4',False)]:
             with self.subTest(role=role), tempfile.TemporaryDirectory() as folder:
-                w=object.__new__(module.Worker);w.role=role;w.total=40;w.out=Path(folder)
-                w.active_senders=['STA1','STA2','STA3'];w.iface='wlan0'
-                w.c=dict(warmup_s=5,measure_s=30,tail_s=5,segment_s=10,guard_s=3,
-                         ap_ip='192.0.2.1',own_ip='192.0.2.2',port=5201)
+                session_id='b'*32
+                out=Path(folder)/('ath9k-demo-'+session_id)/role
+                out.mkdir(parents=True)
+                w=module.Worker({**request(measure_s=60,active_senders=list(STAS[:3])),
+                                 'id':session_id,'role':role,'output':str(out),'interface':'wlan0','phy':'phy0',
+                                 'ap_ip':'192.0.2.1','own_ip':'192.0.2.2','port':5201})
+                w.raw.close()
                 w.plan=dict(T0_ns=100*NS);w.plan_ready=Mock();w.plan_ready.wait.return_value=True
                 w.control_reader=Mock();w.setup=Mock();w.check=Mock();w.state={}
                 w.boundary=Mock();w.stats_start=Mock();w.latch_signature=Mock();w.sample=Mock()
@@ -127,7 +164,11 @@ class ThroughputUCBTests(unittest.TestCase):
                 w.emit=emit;w.processes={'iperf_client':(Mock(),None)};w.launch=Mock()
                 with patch.object(module.threading,'Thread'),patch.object(module.time,'time_ns',side_effect=lambda:now[0]):w.run()
                 self.assertTrue(w.state['completed_schedule'])
-                self.assertEqual(now[0],140*NS)
+                self.assertEqual(now[0],170*NS)
+                self.assertEqual([call.args for call in w.boundary.call_args_list],
+                                 [(k,(105+k*10)*NS) for k in range(7)])
+                self.assertEqual([call.args for call in w.stats_start.call_args_list],
+                                 [(k,(107+k*10)*NS) for k in range(6)])
                 if active:
                     args=w.launch.call_args.args[1]
                     self.assertIn('-u',args);self.assertIn('30M',args);self.assertIn('1200',args)
@@ -156,9 +197,10 @@ class ThroughputUCBTests(unittest.TestCase):
                 (base/'trace_stats.txt').write_text('overrun: 0\ncommit overrun: 0\ndropped events: 0\n')
                 (base/'tx_trace.txt').write_text('offline fixture')
                 names=('iperf_launch_call','iperf_stop_call') if n in active else ('idle_at_T0','absolute_end')
-                events=[dict(event=names[0],wall_ns=t0),dict(event=names[1],wall_ns=130*NS),
-                        dict(event='cw_verified',index=0,write_call_ns=105*NS)]
-                final[n]=dict(events=events,statistics_windows=[dict(index=0,start_wall_ns=108*NS,stop_wall_ns=125*NS)],
+                events=[dict(event=names[0],wall_ns=t0),dict(event=names[1],wall_ns=130*NS)]
+                events.extend(dict(event='cw_verified',index=k,write_call_ns=(105+k*10)*NS) for k in range(2))
+                windows=[dict(index=k,start_wall_ns=(107+k*10)*NS,stop_wall_ns=(115+k*10)*NS) for k in range(2)]
+                final[n]=dict(events=events,statistics_windows=windows,
                               processes={},xmit_before='FIFO Underrun 0',xmit_after='FIFO Underrun 0')
                 if n in active:
                     final[n]['processes']['iperf_client']={'exit_code':1}
@@ -167,15 +209,20 @@ class ThroughputUCBTests(unittest.TestCase):
                     (raw/'AP'/('iperf_server_%d.json'%port)).write_text(json.dumps(dict(intervals=[{}]*20)))
             clocks={n:dict(offset_ms=0,uncertainty_ms=0) for n in ('AP','MON15',*STAS)}
             state=dict(request=req,T0_ns=t0,clock_checks=[clocks],final_nodes=final,
-                       applied_W={0:dict.fromkeys(STAS,16)},control={},
+                       applied_W={0:dict.fromkeys(STAS,16),1:dict.fromkeys(STAS,32)},control={'score_tail_s':5},
                        points=[dict(second=k,queue={n:[2,3] if n in active else [0,0] for n in STAS}) for k in range(6,26)])
-            packets={5201+i:[(106*NS,1200)] if n in active else [] for i,n in enumerate(STAS)}
+            packets={5201+i:[(106*NS,1200),(109*NS,1200),(111*NS,1200)] if n in active else []
+                     for i,n in enumerate(STAS)}
             fake=types.SimpleNamespace(pcap_udp=lambda *a:packets,tcpdump_stats=lambda *a:dict(kernel_dropped=0,interface_drop_fraction=0))
             seg=dict(index=0,hol_samples=0,hol_sum_us=0,attempt_denominator_proxy=None,ACK_success=0,terminal_failures=0)
-            with patch.dict(sys.modules,{'analyze_sync':fake}),patch('labconsole.demo_analysis.analysis_trace',return_value=([seg],{})):
+            with patch.dict(sys.modules,{'analyze_sync':fake}),patch('labconsole.demo_analysis.analysis_trace',return_value=([seg,{**seg,'index':1}],{})):
                 result=analyze(root,state)
                 self.assertEqual(result['issues'],[])
                 self.assertEqual(result['per_STA']['STA4']['goodput_Mbps'],0)
+                first=result['segments'][0]
+                self.assertEqual((first['stable_start_s'],first['stable_stop_s']),(7,10))
+                self.assertAlmostEqual(first['stable_Mbps'],3*1200*8/(3*1e6))
+                self.assertAlmostEqual(first['total_Mbps'],9*1200*8/(10*1e6))
                 packets[5204]=[(106*NS,1200)]
                 self.assertIn('闲置STA出现本轮UDP业务',analyze(root,state)['issues'])
                 packets[5204]=[]

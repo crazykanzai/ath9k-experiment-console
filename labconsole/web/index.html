@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ath9k · 自适应演示</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script><script src="/prepare.js" defer></script><script src="/real-demo.js" defer></script></head>
 <body>
-<header><div class="brand"><span class="eyebrow">APSTASELECT</span><h1>自适应CW演示</h1></div><div class="badge">现场演示专用</div></header>
+<header><div class="brand"></span><h1>自适应CW演示</h1></div><div class="badge">现场演示专用</div></header>
 <div class="shell"><nav aria-label="主导航"><button data-page="overview" class="selected">01　使用说明</button><button data-page="platform">02　平台配置</button><button data-page="check">03　环境准备</button><button data-page="real-demo">04　现场自适应演示</button><p class="small">演示专用<br>设备准备与CW调节</p></nav>
 <main><div id="message" hidden><span id="message-text" role="status"></span><button id="dismiss-message" type="button" aria-label="关闭提示">关闭</button></div>
 <section id="overview" class="page"><h2>ath9k 自适应CW演示</h2><p class="lead">连接设备、完成环境准备，然后观察手动或自动调整CW时吞吐变化。</p><div class="cards"><article><h3>1. 平台配置</h3><p>核对控制机与六节点地址。</p><button data-page="platform">平台配置</button></article><article><h3>2. 环境准备</h3><p>连接设备、应用配置并同步时间。</p><button data-page="check">准备设备</button></article><article><h3>3. 现场演示</h3><p>完成所需检查后，启动手动或自动CW调节。</p><button data-page="real-demo">进入现场演示</button></article></div><p>一轮恢复确认后，可在现场演示页直接开始下一轮。全部演示结束后，再到环境准备页点击“结束使用并清理”。</p><dl><dt>版本</dt><dd id="version"></dd><dt>数据目录</dt><dd id="workspace"></dd></dl></section>
@@ -25,8 +25,8 @@
 <p class="small">设备地址使用“平台配置”中的档案。密码仅用于本次连接。</p>
 <details><summary>高级连接设置</summary>
 <div class="formgrid"><label>管理员密码<input id="prepare-sudo" type="password" autocomplete="off" placeholder="与登录密码相同时可留空"></label><label>AP无线业务地址<input id="prepare-cidr" placeholder="填写原有效地址/前缀，例如地址后附 /24"></label></div>
-<label>时间同步方式<select id="prepare-time-transport"><option value="direct">控制机直接同步</option><option value="ap_relay">经AP有线中继</option></select></label>
-<p class="small">业务地址与有线管理地址用途不同。时间中继适用于控制机授时端口被系统服务占用的情况。</p>
+<label>时间同步方式<select id="prepare-time-transport"><option value="ap_relay" selected>经AP有线中继</option><option value="direct">控制机直接同步</option></select></label>
+<p class="small">默认由 AP 通过有线网络转发授时请求，时钟参考仍是控制机。</p>
 </details>
 </div>
 <div id="prepare-recovery-actions" class="notice" hidden><strong>上次使用尚未完成恢复，请先处理</strong><p id="prepare-recovery-help">请在上方输入设备登录密码，再点击下面的按钮核对并清理。成功后才能新建准备会话。</p><button id="prepare-recover" class="primary" disabled>核对并清理中断会话</button><p class="small">该步骤核对原配置并清理本会话的临时授时；不会启动打流，也不会强制删除占用。若未通过，请查看诊断记录。</p></div>
@@ -56,25 +56,31 @@
 <div class="actions" id="real-demo-prepare-action" hidden><button data-page="check" class="primary">返回环境准备处理</button></div>
 <div class="formgrid">
 <label>无线接入机制<select id="real-demo-access"><option value="basic">Basic</option><option value="rts">RTS/CTS</option></select></label>
-<label id="real-demo-initial-field">统一填入初始 W<select id="real-demo-initial"><option>8</option><option>16</option><option>32</option><option>64</option><option selected>128</option></select></label>
+<div class="cw-pair-grid" id="real-demo-initial-field"></div>
 <label>每轮测量时长<select id="real-demo-duration"><option value="60">1分钟</option><option value="300">5分钟</option><option value="600" selected>10分钟</option><option value="1200">20分钟</option></select></label>
 </div>
-<div class="tablewrap"><table><thead><tr><th>节点</th><th>参与UDP上传</th><th>初始 W</th></tr></thead><tbody id="real-demo-initial-stas"></tbody></table></div>
-<p class="small">启动后先手动控制，可逐STA设置W8～W128。上传集合在启动前选择，本轮固定，空闲节点保持关联。每20秒一个共同切换边界。</p>
-<p class="small">交给算法后，仅探索全员W8或全员W16，每档取得两个有效段后保持较好档。保持期连续两段吞吐下降至少10%才重新探索；复探换档须提高5%以上。不输入上传人数，探索与切换计入全程吞吐。</p>
+<div class="tablewrap"><table><thead><tr><th>节点</th><th>参与UDP上传</th><th>初始 CWmin</th><th>初始 CWmax</th></tr></thead><tbody id="real-demo-initial-stas"></tbody></table></div>
+<p class="small">每台 STA 可独立设置 CWmin 和 CWmax，支持 1、3、7、15 … 1023，CWmin 须小于或等于 CWmax。上传集合在启动前选定，每 10 秒一个共同切换边界。</p>
+<p class="small">算法试测 W8、W16、W32，每档测两个有效段，通常约 60 秒后选档。保持期的稳定吞吐比上一有效同档段下降至少 5% 就重探，候选在重探中比原档高出超过 5% 才换档。</p>
 <div class="actions"><button id="real-demo-start" class="primary" disabled>启动打流</button><button id="real-demo-stop" class="danger" disabled>停止并恢复</button><button id="real-demo-resume" disabled>继续打流</button></div><p class="small">可随时停止。恢复确认后，“继续打流”沿用已准备环境与上一轮CW，创建独立新一轮；无需重新配置环境。每轮到时自动收尾，原始记录分别保留。</p>
 <div id="real-demo-manual-controls" hidden><div class="actions"><button id="real-demo-apply" disabled>应用四台设置</button><button id="real-demo-adapt" class="primary" disabled>交给算法</button><button id="real-demo-takeback" disabled hidden>接回手动</button></div><div class="formgrid" id="real-demo-target-stas"></div><p id="real-demo-pending" class="small" role="status"></p></div>
 <p id="real-demo-adapt-status" class="small" role="status" hidden></p>
 <div class="actions"><label>演示记录<select id="real-demo-history"></select></label><button id="real-demo-open">查看</button><a id="real-demo-export" hidden>导出会话记录</a></div>
 <p id="real-demo-status" class="field-help" role="status">尚未启动。</p>
 <div id="real-demo-data" hidden>
-<div class="actions"><button id="real-demo-clear">清除当前曲线</button><button id="real-demo-show-all">显示完整曲线</button><span id="real-demo-clear-note" class="small"></span></div>
+<div class="actions"><button id="real-demo-clear">清除当前曲线</button><button id="real-demo-show-all">恢复已隐藏曲线</button><span id="real-demo-clear-note" class="small"></span></div>
 <div class="demo-charts">
-<article class="demo-wide"><h3>AP接收UDP载荷吞吐 · Mbps</h3><ul id="real-demo-legend" class="demo-legend" aria-label="吞吐图例"></ul><canvas id="real-demo-rate" width="900" height="250" role="img" aria-label="聚合与逐STA真实吞吐"></canvas><p id="real-demo-chart-note" class="small"></p></article>
+<article class="demo-wide">
+<h3>AP接收UDP载荷吞吐 · Mbps</h3>
+<div class="demo-time-tools"><label for="real-demo-time-span">显示时宽</label><select id="real-demo-time-span"><option value="30">30 秒</option><option value="60" selected>60 秒</option><option value="120">120 秒</option><option value="300">300 秒</option></select><button id="real-demo-time-follow" type="button">跟随最新</button><output id="real-demo-time-range" class="small"></output></div>
+<ul id="real-demo-legend" class="demo-legend" aria-label="吞吐图例"></ul>
+<canvas id="real-demo-rate" width="900" height="250" role="img" aria-label="聚合与逐STA真实吞吐"></canvas>
+<label class="demo-time-slider" for="real-demo-time-start">浏览时间轴<input id="real-demo-time-start" type="range" min="0" max="0" step="1" value="0" disabled></label>
+<p id="real-demo-chart-note" class="small"></p>
+</article>
 </div>
-<p id="real-demo-comparison" class="field-help" hidden></p>
-<section id="real-demo-algorithm" hidden><h3 id="real-demo-algorithm-title">算法决策 · UCB探索与稳定保持（W8 / W16）</h3><p id="real-demo-decision" class="field-help"></p><p class="small">探索评分＝平均吞吐＋探索奖励；保持期不会因探索奖励换档。下表为决策时已收集的探索样本，不是吞吐预测或置信区间。历史记录按原策略展示。</p><div class="tablewrap"><table><thead><tr><th>候选 W</th><th>有效段数</th><th>探索平均 Mbps</th><th>UCB 评分</th></tr></thead><tbody id="real-demo-estimates"></tbody></table></div></section>
-<h3>分段吞吐</h3><div class="tablewrap"><table><thead><tr><th>段</th><th>W</th><th>时间 s</th><th>整段 Mbps</th><th>稳定期 Mbps</th></tr></thead><tbody id="real-demo-segments"></tbody></table></div>
+<section id="real-demo-algorithm" hidden><h3 id="real-demo-algorithm-title">算法决策</h3><p id="real-demo-decision" class="field-help"></p><p class="small">探索评分＝平均吞吐＋探索奖励。</p><div class="tablewrap"><table><thead><tr><th>候选 W</th><th>计分段数</th><th>探索平均 Mbps</th><th>UCB 评分</th><th>候选状态</th></tr></thead><tbody id="real-demo-estimates"></tbody></table></div></section>
+<h3>分段吞吐</h3><div class="tablewrap"><table><thead><tr><th>段</th><th>竞争窗口</th><th>时间 s</th><th>整段 Mbps</th><th>稳定期 Mbps</th></tr></thead><tbody id="real-demo-segments"></tbody></table></div>
 <details><summary>接入配置、CW 硬件读回与恢复记录</summary><pre id="real-demo-events"></pre></details>
 </div></section>
 </main></div><footer>环境准备 → 现场CW演示 → 停止并恢复 → 结束使用并清理</footer>

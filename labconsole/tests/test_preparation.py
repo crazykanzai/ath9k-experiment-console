@@ -55,7 +55,7 @@ class FakeBackend:
 
     def clock(self,role):
         return {'offset_ms':.5,'uncertainty_ms':.5,'envelope_ms':self.envelope,
-                'status':'NTPSynchronized=yes\nServer: 192.168.100.2 (192.168.100.2)',
+                'status':f"NTPSynchronized=yes\nServer: {self.platform['controller']['ntp_source']}",
                 'wall_ns':100_000_000_000,'monotonic_ns':50_000_000_000}
 
     def start_reference(self):self.reference=True
@@ -94,6 +94,9 @@ class PreparationTests(unittest.TestCase):
 
     def test_full_lifecycle_holds_and_releases(self):
         identity=self.radio();backend=self.hub.backend
+        self.assertEqual(backend.platform['controller']['time_transport'],'ap_relay')
+        self.assertEqual(backend.platform['controller']['ntp_source'],
+                         next(n['address'] for n in backend.platform['nodes'] if n['role']=='AP'))
         self.hub.action(identity,'sync');v=wait_state(self.hub,identity,{'ready','failed_clean'})
         self.assertEqual(v['status'],'ready');self.assertTrue(v['preparation_ready'])
         self.assertFalse(v['experiment_ready']);self.assertFalse(v['traffic_started'])

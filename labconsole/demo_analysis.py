@@ -132,6 +132,9 @@ def analyze(folder, state):
             start = t0+(warm+k*step+request['guard_s'])*NS
             timing.extend([(abs(w['start_wall_ns']-offset_n-start)+unc)/1e6,(abs(w['stop_wall_ns']-offset_n-end)+unc)/1e6])
             switch = next(e for e in events if e['event']=='cw_verified' and e.get('index')==k)
+            cw = state.get('applied_CW',{}).get(str(k),{}).get(n)
+            if cw and any(str(value)!=str(switch.get('readback',{}).get('hw_'+key)) for key,value in cw.items()):
+                issues.append(f'{n} 第{k+1}段 CWmin/CWmax 硬件读回不一致')
             call_ns = switch['write_call_ns'] or switch['verified_call_ns']
             timing.append((abs(call_ns-offset_n-(t0+(warm+k*step)*NS))+unc)/1e6)
         if max(timing)>100:
@@ -183,6 +186,7 @@ def analyze(folder, state):
         dynamic = state.get('control') or state.get('adaptation')
         stable_stop = stop-dynamic.get('score_tail_s',1) if dynamic else stop
         segments.append({'index':k,'W':w,'per_STA_W':settings if isinstance(settings,dict) else dict.fromkeys(STAS,w),
+                         **({'per_STA_CW':state['applied_CW'][str(k)]} if str(k) in state.get('applied_CW',{}) else {}),
                          'start_s':start,'stop_s':stop,'stable_start_s':stable_start,'stable_stop_s':stable_stop,
                          'total_Mbps':sum(sum(x[start:stop]) for x in buckets.values())*8/(step*1e6),
                          'stable_Mbps':sum(sum(x[stable_start:stable_stop]) for x in buckets.values())*8/((stable_stop-stable_start)*1e6),

@@ -116,16 +116,16 @@ class RealDemoTests(unittest.TestCase):
                 self.assertFalse(s.control_availability(t0+10*NS)['adapt'])
             self.assertEqual(s.online_choice(1)[0],dict.fromkeys(STAS,64))
             s.sent.add(1)
-            self.assertFalse(s.control_availability(t0+24*NS)['manual'])
-            self.assertTrue(s.control_availability(t0+24*NS)['pending'])
-            s.state['points'].append({'second':40,'W':64})
-            with patch('labconsole.real_demo.time.time_ns',return_value=t0+40*NS):
-                self.assertTrue(s.control_availability(t0+40*NS)['adapt'])
+            self.assertFalse(s.control_availability(t0+14*NS)['manual'])
+            self.assertTrue(s.control_availability(t0+14*NS)['pending'])
+            s.state['points'].append({'second':20,'W':64})
+            with patch('labconsole.real_demo.time.time_ns',return_value=t0+20*NS):
+                self.assertTrue(s.control_availability(t0+20*NS)['adapt'])
                 s.request_control('adapt')
             self.assertEqual(s.online_choice(2)[0],dict.fromkeys(STAS,8))
             s.sent.add(2)
-            s.state['points'].append({'second':55,'W':8})
-            with patch('labconsole.real_demo.time.time_ns',return_value=t0+55*NS):
+            s.state['points'].append({'second':30,'W':8})
+            with patch('labconsole.real_demo.time.time_ns',return_value=t0+30*NS):
                 with self.assertRaises(ValueError):
                     s.request_control('manual',8)
                 s.request_control('takeback')
@@ -146,7 +146,8 @@ class RealDemoTests(unittest.TestCase):
             planned,reason = s.online_choice(3)
             self.assertEqual(planned,dict.fromkeys(STAS,16))
             self.assertIn('评分不可用',reason)
-            self.assertEqual(s.online_choice(4)[0],dict.fromkeys(STAS,8))
+            self.assertEqual(s.online_choice(4)[0],dict.fromkeys(STAS,32))
+            self.assertEqual(s.state['control']['arms'],[8,16,32])
             self.assertEqual(s.state['control']['blocks']['4']['mode'],'auto')
 
     def test_sliding_window_ucb_prefers_unmeasured_then_balances_reward_and_bonus(self):
@@ -287,6 +288,24 @@ class RealDemoTests(unittest.TestCase):
             worker.be.return_value['hw_cwmax'] = '511'
             with self.assertRaisesRegex(RuntimeError,'hardware mismatch'):
                 worker.set_cw(32,index=2,planned_ns=10*NS)
+
+    def test_worker_writes_and_verifies_maximum_only_change_at_boundary(self):
+        module = self.worker_module()
+        worker = object.__new__(module.Worker)
+        worker.c, worker.current_w = {'mode':'unified'}, {'cwmin':31,'cwmax':255}
+        worker.shared, worker.emit = Mock(side_effect=lambda operation:operation()), Mock()
+        worker.be = Mock(return_value={'hw_aifs':'3','hw_cwmin':'31','hw_cwmax':'511'})
+        with tempfile.TemporaryDirectory() as folder:
+            worker.base=Path(folder)
+            with patch.object(module.time,'time_ns',return_value=10*NS):
+                worker.set_cw({'cwmin':31,'cwmax':511},index=1,planned_ns=10*NS)
+                self.assertEqual((worker.base/'edca_ctrl').read_text(),'BE 3 31 511\n')
+                self.assertEqual(worker.emit.call_args.kwargs['CW'],{'cwmin':31,'cwmax':511})
+                worker.be.return_value['hw_cwmax']='255'
+                with self.assertRaisesRegex(RuntimeError,'hardware mismatch'):
+                    worker.set_cw({'cwmin':31,'cwmax':511},index=2,planned_ns=10*NS)
+                worker.set_cw(32,index=2,planned_ns=10*NS)
+                self.assertEqual((worker.base/'edca_ctrl').read_text(),'BE 3 31 255\n')
 
     def test_warning_retracts_only_affected_window_and_preserves_throughput(self):
         request=validate_request({'preparation_id':'a'*32,'request_key':'warning-test-key','mode':'manual','authorize':True})

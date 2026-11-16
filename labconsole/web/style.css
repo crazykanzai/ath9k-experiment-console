@@ -37,6 +37,7 @@ p { max-width: 1050px; }
 .small { font-size: 12px; color: var(--muted); }
 .mono, code { font-family: ui-monospace, Consolas, monospace; overflow-wrap: anywhere; }
 .formgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 20px; }
+.cw-pair-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; min-width: 0; }
 label { display: block; font-size: 13px; color: #525e6a; margin: 8px 0; }
 input, select, textarea { display: block; width: 100%; border: 1px solid #adb8c4; padding: 8px 10px; color: var(--ink); background: #fff; font: inherit; margin-top: 6px; border-radius: 0; }
 textarea { font-family: Consolas, monospace; }
@@ -107,6 +108,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   h2 { font-size: 21px; }
 }
 #real-demo canvas { width: 100%; height: auto; display: block; }
+.demo-time-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.demo-time-tools select, .demo-time-tools button { width: auto; margin: 0; }
+.demo-time-slider { display: flex; align-items: center; gap: 12px; }
+.demo-time-slider input { flex: 1; min-width: 0; margin: 0; padding: 0; }
 #real-demo-initial-stas input[type="checkbox"] { width: auto; min-width: 18px; height: 18px; }
 .demo-legend { display: flex; flex-wrap: wrap; gap: .35rem 1.1rem; padding: 0; list-style: none; font-size: .875rem; }
 .demo-legend li { display: inline-flex; align-items: center; gap: .45rem; }

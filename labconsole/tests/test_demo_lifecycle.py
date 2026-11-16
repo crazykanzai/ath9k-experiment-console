@@ -78,7 +78,7 @@ class DemoLifecycleTests(unittest.TestCase):
             with self.assertRaises(ValueError):validate_request({**base,'measure_s':duration})
         with tempfile.TemporaryDirectory() as folder:
             s=Session(Path(folder),None,validate_request(base));s.roles=tuple(enabled_roles({'monitor_enabled':False}))
-            s.state['points']=[dict(second=k,total_Mbps=12,queue={n:[2,3] for n in s.roles if n.startswith('STA')}) for k in range(9,21)]
+            s.state['points']=[dict(second=k,total_Mbps=12,queue={n:[2,3] for n in s.roles if n.startswith('STA')}) for k in (8,9,10)]
             self.assertEqual(s.continuous_score(0),12)
 
 

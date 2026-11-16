@@ -17,10 +17,11 @@ import time
 import uuid
 
 from .cw_policy import (ACCESS_SETTINGS, CONTINUOUS_HOLD_SEGMENTS, CONTINUOUS_TRIALS,
-                        LONG_DEMO_MODES, Policy, STAS, WINDOWS, continuous_candidates,
+                        LONG_DEMO_MODES, UNIFIED_GUARD_S, UNIFIED_SEGMENT_S, Policy, STAS, WINDOWS, continuous_candidates,
                         sliding_window_ucb, sta_windows, uniform_window, throughput_ucb, hold_ucb_step,
+                        sta_cw_pairs, stage_windows,
                         UCB_WINDOW, UCB_ARMS, UCB_BONUS_MBPS,
-                        HOLD_DROP_FRACTION,HOLD_DROP_SEGMENTS,HOLD_SWITCH_MARGIN,HOLD_SAMPLES_PER_ARM)
+                        HOLD_DROP_FRACTION,HOLD_SWITCH_MARGIN,HOLD_SAMPLES_PER_ARM)
 from .preparation import ROLES, check_radio
 from .prepare_node import MODULE
 from .storage import atomic_json
@@ -38,11 +39,11 @@ CONTINUOUS_BASELINE_S = 30
 UCB_LOOKBACK = UCB_WINDOW
 TIMINGS = {'manual': (5, 30, 5, 10),
            'auto': (5, 60, 5, 10), 'fixed': (5, 60, 5, 10),
-           'continuous': (5, 600, 5, 20), 'unified': (5, 600, 5, 20)}
+           'continuous': (5, 600, 5, 20), 'unified': (5, 600, 5, UNIFIED_SEGMENT_S)}
 
 
 def validate_request(data):
-    if set(data) - {'preparation_id', 'request_key', 'mode', 'initial_w', 'initial_per_STA_W', 'active_senders', 'measure_s', 'access_mode', 'authorize'}:
+    if set(data) - {'preparation_id', 'request_key', 'mode', 'initial_w', 'initial_per_STA_W', 'initial_per_STA_CW', 'active_senders', 'measure_s', 'access_mode', 'authorize'}:
         raise ValueError('未知现场演示参数')
     if data.get('authorize') is not True:
         raise ValueError('请明确选择执行真实设备演示')
@@ -64,20 +65,33 @@ def validate_request(data):
         raise ValueError('自动演示以W128为固定基线，探索W32与W64')
     warmup, measure, tail, segment = TIMINGS[mode]
     result = {'preparation_id': identity, 'request_key': key, 'mode': mode, 'initial_w': w, 'access_mode':access_mode,
-              'warmup_s': warmup, 'measure_s': measure, 'tail_s': tail, 'segment_s': segment, 'guard_s': 3}
+              'warmup_s': warmup, 'measure_s': measure, 'tail_s': tail, 'segment_s': segment,
+              'guard_s': UNIFIED_GUARD_S if mode=='unified' else 3}
     if mode == 'unified':
         duration=data.get('measure_s',600)
         if type(duration) is not int or duration not in (60,300,600,1200):raise ValueError('演示测量时长只允许1、5、10、20分钟')
         result['measure_s']=duration
-        settings = sta_windows(data.get('initial_per_STA_W', w))
+        if 'initial_per_STA_CW' in data:
+            if 'initial_per_STA_W' in data:
+                raise ValueError('初始 CW 与旧版 W 设置只能提交一组')
+            result['initial_per_STA_CW'] = sta_cw_pairs(data['initial_per_STA_CW'])
+        else:
+            result['initial_per_STA_W'] = sta_windows(data.get('initial_per_STA_W', w))
         senders = data.get('active_senders', list(STAS))
         if (not isinstance(senders, list) or not senders or any(type(n) is not str or n not in STAS for n in senders)
                 or len(set(senders)) != len(senders)):
             raise ValueError('上传集合须为四台STA中的非空、不重复集合')
-        result.update(initial_per_STA_W=settings, active_senders=[n for n in STAS if n in senders])
-    elif any(k in data for k in ('initial_per_STA_W','active_senders','measure_s')):
+        result['active_senders'] = [n for n in STAS if n in senders]
+    elif any(k in data for k in ('initial_per_STA_W','initial_per_STA_CW','active_senders','measure_s')):
         raise ValueError('逐STA初始配置和上传集合仅供统一演示使用')
     return result
+
+
+def stage_block(settings):
+    block = {'W':uniform_window(settings), 'per_STA_W':stage_windows(settings)}
+    if isinstance(settings[STAS[0]],dict):
+        block['per_STA_CW'] = settings
+    return block
 
 
 def import_reference():
@@ -212,16 +226,16 @@ class Session:
                                         'score_tail_s':CONTINUOUS_SCORE_TAIL_S,
                                         'minimum_hold_s':CONTINUOUS_HOLD_SEGMENTS*request['segment_s']}
         elif request['mode']=='unified':
-            self.stages[0] = sta_windows(request.get('initial_per_STA_W', request['initial_w']))
+            self.stages[0] = request.get('initial_per_STA_CW') or sta_windows(request.get('initial_per_STA_W', request['initial_w']))
             self.state['control'] = {'policy':'sliding_window_ucb','window_segments':UCB_LOOKBACK,
-                                     'revision':3,'arms':list(UCB_ARMS),'bonus_Mbps':UCB_BONUS_MBPS,
+                                     'revision':7,'arms':list(UCB_ARMS),'bonus_Mbps':UCB_BONUS_MBPS,
                                      'strategy':'UCB_explore_then_degradation_triggered_hold',
-                                     'hold_rules':{'drop_fraction':HOLD_DROP_FRACTION,'drop_segments':HOLD_DROP_SEGMENTS,
+                                     'hold_rules':{'drop_fraction':HOLD_DROP_FRACTION,'drop_segments':1,
+                                                   'drop_reference':'previous_valid_same_w',
                                                    'switch_margin':HOLD_SWITCH_MARGIN,'samples_per_arm':HOLD_SAMPLES_PER_ARM},
                                      'observation':'AP_received_payload_Mbps_only','epoch_start':None,
                                      'score_tail_s':CONTINUOUS_SCORE_TAIL_S,'pending':None,
-                                     'blocks':{'0':{'mode':'manual','W':uniform_window(self.stages[0]),
-                                                    'per_STA_W':dict(self.stages[0])}}}
+                                     'blocks':{'0':{'mode':'manual',**stage_block(self.stages[0])}}}
 
     def save(self):
         with self.lock:
@@ -257,7 +271,8 @@ class Session:
     def send_stage(self, index, settings, at):
         def send(node):
             w = settings[node] if isinstance(settings, dict) else settings
-            self.workers[node].send({'op':'stage','index':index,'W':w,'apply_ns':at})
+            field = 'CW' if isinstance(w,dict) else 'W'
+            self.workers[node].send({'op':'stage','index':index,field:w,'apply_ns':at})
         with ThreadPoolExecutor(max_workers=len(STAS)) as pool:
             list(pool.map(send, STAS))
 
@@ -376,10 +391,16 @@ class Session:
         data = self.samples[second]
         prev = self.samples.get(second-1,{})
         be = {n:int(data[n]['data']['BE']['hw_cwmin'])+1 for n in STAS}
+        pairs = None
         warm, measure, step = (self.request[k] for k in ('warmup_s','measure_s','segment_s'))
         if self.request['mode'] in LONG_DEMO_MODES:
             sample_index = min(measure//step-1,max(0,(second-warm)//step))
-            if be!=self.stages.get(sample_index):
+            expected = self.stages.get(sample_index)
+            actual = be
+            if expected and isinstance(expected[STAS[0]],dict):
+                pairs = {n:{k:int(data[n]['data']['BE']['hw_'+k]) for k in ('cwmin','cwmax')} for n in STAS}
+                actual = pairs
+            if actual!=expected:
                 raise RuntimeError('逐STA硬件CW读回与已封存计划不一致')
         elif len(set(be.values()))!=1:
             raise RuntimeError('four STA hardware CW readbacks differ')
@@ -397,7 +418,8 @@ class Session:
         return {'second':second,'total_Mbps':sum(values.values()),'per_STA_Mbps':values,
                 'W':be[STAS[0]] if len(set(be.values()))==1 else None,'per_STA_W':be,
                 'HoL_ms':hol,'p_ACK':p,'stable':stable,'source':'AP receive payload / TX completion interval',
-                'queue':{n:[data[n]['data']['qdepth'],data[n]['data']['pending']] for n in STAS}}
+                'queue':{n:[data[n]['data']['qdepth'],data[n]['data']['pending']] for n in STAS},
+                **({'per_STA_CW':pairs} if pairs is not None else {})}
 
     def continuous_score(self, index):
         request = self.request
@@ -508,30 +530,34 @@ class Session:
         available = self.state['status']=='running' and warm*NS<=elapsed_ns<(warm+measure)*NS and not self.cancel.is_set()
         upcoming = control['blocks'].get(str(index+1),{})
         if not pending and upcoming.get('action'):
-            pending = {'segment':index+1,'action':upcoming['action'],'W':upcoming['W']}
+            pending = {'segment':index+1,'action':upcoming['action'],'W':upcoming['W'],
+                       **({'CW':upcoming['per_STA_CW']} if 'per_STA_CW' in upcoming else {})}
         next_index = next((k for k in range(index+1,measure//step)
                            if k not in self.sent and (warm+k*step)*NS-elapsed_ns>STAGE_LEAD_NS),None)
         points = self.state['points']
         current_readback = bool(points and points[-1]['second']>=warm+index*step)
         command_ready = available and next_index is not None and not pending and current_readback
         recent_score = self.continuous_score(index) if available and active['mode']=='manual' else None
+        prior = control['blocks'].get(str(index-1),{})
         if (available and recent_score is None and index
-                and control['blocks'].get(str(index-1),{}).get('per_STA_W', control['blocks'].get(str(index-1),{}).get('W'))
-                    == active.get('per_STA_W', active.get('W'))):
+                and prior.get('per_STA_CW',prior.get('per_STA_W')) == active.get('per_STA_CW',active.get('per_STA_W'))):
             recent_score = self.continuous_score(index-1)
         return {'mode':active['mode'],'pending':pending,'next_segment':next_index,
                 'manual':command_ready and active['mode']=='manual',
                 'adapt':command_ready and active['mode']=='manual' and recent_score is not None,
                 'takeback':command_ready and active['mode']=='auto'}
 
-    def request_control(self, action, w=None):
+    def request_control(self, action, w=None, cw=None):
         with self.lock:
             availability = self.control_availability(time.time_ns())
             if not availability[action]:
                 raise ValueError('当前操作不可用，请等待有效吞吐样本、已提交切换生效或下一轮演示')
             pending = {'action':action,'segment':availability['next_segment']}
             if action=='manual':
-                pending['W'] = sta_windows(w)
+                if cw is not None:
+                    pending['CW'] = sta_cw_pairs(cw)
+                else:
+                    pending['W'] = sta_windows(w)
             self.state['control']['pending'] = pending
             self.event('control_request','等待下一个未封存的共同分段边界',**pending)
 
@@ -540,7 +566,7 @@ class Session:
         blocks = control['blocks']
         previous = blocks[str(index-1)]
         mode = previous['mode']
-        settings = sta_windows(previous.get('per_STA_W', previous['W']))
+        settings = previous.get('per_STA_CW') or sta_windows(previous.get('per_STA_W',previous['W']))
         pending = control['pending']
         action = pending['action'] if pending and pending['segment']==index else None
         block = {}
@@ -555,22 +581,22 @@ class Session:
         elif action in ('manual','takeback'):
             mode = 'manual'
             if action=='manual':
-                settings = sta_windows(pending['W'])
+                settings = pending['CW'] if 'CW' in pending else sta_windows(pending['W'])
             reason = '应用手动 W' if action=='manual' else '接回手动，保持当前 W'
         if mode=='auto':
             # Only this takeover epoch's uniform AUTO segments train the arms.
-            # Manual configurations (including uniform W8/W16) are not rewards.
+            # Manual configurations are not rewards.
             recent = [(blocks[str(k)]['W'],self.continuous_score(k))
                       for k in range(max(control['epoch_start'],index-UCB_LOOKBACK),index)]
             prior_reward=recent[-1][1] if recent else None
             chosen,reason,estimates = hold_ucb_step(control.setdefault('hold_state',{}),
                 uniform_window(settings),prior_reward,estimator=throughput_ucb)
-            settings = dict.fromkeys(STAS, chosen)
+            # A scalar W tells the node to apply the full K3 profile.
+            settings = dict.fromkeys(STAS,chosen)
             block['estimates'] = estimates
             block['previous_reward_Mbps'] = prior_reward
             block['hold_status']=copy.deepcopy(control['hold_state'])
-        blocks[str(index)] = {**block,'mode':mode,'W':uniform_window(settings),
-                             'per_STA_W':dict(settings),'reason':reason}
+        blocks[str(index)] = {**block,'mode':mode,**stage_block(settings),'reason':reason}
         return settings,reason
 
     def online_choice(self, index):
@@ -618,8 +644,10 @@ class Session:
         self.event('deploying','复用已有追踪定义，启动本次独立AP、STA、MON15 worker')
 
         def launch(role):
+            start = self.stages[0][role] if self.request['mode']=='unified' and role in STAS else self.request['initial_w']
+            initial = {'initial_cw':start} if isinstance(start,dict) else {'initial_w':start}
             self.workers[role].launch({**self.request,
-                'initial_w':self.stages[0][role] if self.request['mode']=='unified' and role in STAS else self.request['initial_w'],
+                **initial,
                 'role':role,'id':self.id,
                 'output':'/tmp/ath9k-demo-'+self.id+'/'+role,'interface':rows[role]['interface'],'phy':rows[role]['phy'],
                 'ap_ip':ips['AP'],'ap_mac':self.state['macs']['AP'],'sta_macs':macs,'sta_ports':PORTS,
@@ -653,7 +681,7 @@ class Session:
                 index = e['index']
                 settings = self.stages.get(index)
                 target = settings.get(role) if isinstance(settings,dict) else settings
-                if role not in STAS or index not in self.sent or e['W']!=target or e['apply_ns']!=t0+(warm+index*seg)*NS:
+                if role not in STAS or index not in self.sent or e.get('CW',e.get('W'))!=target or e['apply_ns']!=t0+(warm+index*seg)*NS:
                     raise RuntimeError(role+' CW stage acknowledgement disagrees with the plan')
                 acknowledgements[index].add(role)
             now = time.time_ns()
@@ -669,7 +697,8 @@ class Session:
                         w, reason = self.online_choice(k)
                         self.stages[k] = w
                         self.sent.add(k)
-                    self.event('stage_plan',reason,index=k,W=w,apply_ns=at)
+                    fields = {'CW':w} if isinstance(w,dict) and isinstance(w[STAS[0]],dict) else {'W':w}
+                    self.event('stage_plan',reason,index=k,apply_ns=at,**fields)
                     self.send_stage(k,w,at)
             if e and e['event']=='sample':
                 seconds = {p['second'] for p in self.state['points']}
@@ -687,7 +716,11 @@ class Session:
         if any(v.get('error') or not v.get('completed_schedule') for v in self.finished.values()):
             raise RuntimeError('node schedule failed')
         self.state['clock_after'] = self.clock()
-        self.state['applied_W'] = self.stages
+        blocks = self.state.get('control',{}).get('blocks',{})
+        pairs = {k:b['per_STA_CW'] for k,b in blocks.items() if 'per_STA_CW' in b}
+        if pairs:
+            self.state['applied_CW'] = pairs
+        self.state['applied_W'] = {k:stage_windows(w) if isinstance(w,dict) else w for k,w in self.stages.items()}
         self.save()
 
     def cleanup(self, failed):
@@ -826,7 +859,8 @@ class DemoHub:
                 if v['request']['request_key']==req['request_key']:
                     prior = {'access_mode':'basic',**v['request']}
                     if prior['mode']=='unified':
-                        prior.setdefault('initial_per_STA_W',sta_windows(prior['initial_w']))
+                        if 'initial_per_STA_CW' not in prior:
+                            prior.setdefault('initial_per_STA_W',sta_windows(prior['initial_w']))
                         prior.setdefault('active_senders',list(STAS))
                     if prior!=req:
                         raise ValueError('重复请求内容变化')
@@ -871,10 +905,12 @@ class DemoHub:
                 s.abort('用户停止演示')
             elif s.request['mode']=='unified' and data.get('action') in ('manual','adapt','takeback'):
                 action = data['action']
-                w = data.get('W')
-                if action=='manual':
-                    w = sta_windows(w)
-                s.request_control(action,w)
+                if action=='manual' and 'CW' in data:
+                    if 'W' in data:
+                        raise ValueError('手动 CW 与旧版 W 设置只能提交一组')
+                    s.request_control(action,cw=sta_cw_pairs(data['CW']))
+                else:
+                    s.request_control(action,data.get('W'))
             elif data.get('action')=='adapt' and s.request['mode']=='continuous':
                 s.enable_adaptation()
             elif data.get('action')=='manual' and s.request['mode']=='manual':

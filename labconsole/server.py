@@ -14,7 +14,7 @@ from . import VERSION
 from .config import validate_platform,load_json
 from .storage import Store,atomic_json
 from .workspace_lock import WorkspaceLock
-from .preparation import PreparationHub
+from .preparation import DEFAULT_TIME_TRANSPORT, PreparationHub
 PROJECT=Path(__file__).resolve().parents[1]
 WEB=Path(__file__).resolve().parent/'web'
 
@@ -88,7 +88,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.reply((WEB/name).read_bytes(),content_type=mimetypes.guess_type(name)[0]+'; charset=utf-8')
             if path=='/api/bootstrap':
                 timing=self.server.preparation.timing
-                return self.reply({'version':VERSION,'mode':'demo_only','capabilities':['preparation','real_demo','continuous_demo','continuous_sequential','demo_access_modes','unified_demo','throughput_ucb_v2','per_sta_cw','demo_lifecycle_v3','ucb_hold_v3'],
+                return self.reply({'version':VERSION,'mode':'demo_only','capabilities':['preparation','real_demo','continuous_demo','continuous_sequential','demo_access_modes','unified_demo','throughput_ucb_v2','per_sta_cw','demo_lifecycle_v3','ucb_hold_v3','ucb_hold_w32','unified_10s','per_sta_cw_pairs','auto_cw_profile','ucb_same_w_drop'],
                     'csrf':self.server.csrf,'workspace':str(self.server.store.root),'platform':self.server.store.platform(),
                     'preparation_policy':dict(revision=3,settle_s=timing[0],hold_s=timing[1],sample_s=timing[2],monitor_s=timing[3])})
             if path=='/api/preparation/list':return self.reply({'sessions':self.server.preparation.listing()})
@@ -134,7 +134,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.server.demo.command(data)
         if path == '/api/preparation/check':
             if set(data)-{'password','sudo_password','request_key','ap_cidr','time_transport'}:raise ValueError('未知准备字段')
-            return self.server.preparation.create(store.platform(),data.get('password',''),data.get('sudo_password',''),data['request_key'],data.get('ap_cidr',''),data.get('time_transport','direct'))
+            return self.server.preparation.create(store.platform(),data.get('password',''),data.get('sudo_password',''),data['request_key'],data.get('ap_cidr',''),data.get('time_transport',DEFAULT_TIME_TRANSPORT))
         if path == '/api/preparation/action':
             if data.get('action')=='restore' and data.get('allow_temporary_restore') is not True:
                 raise ValueError('须明确允许本次临时无线/FIFO恢复')

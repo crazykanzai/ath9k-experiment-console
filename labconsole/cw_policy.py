@@ -1,19 +1,20 @@
 """CW reward policy shared by real on-site demonstrations."""
 import math
 import random
-import statistics
 WINDOWS=(8,16,32,64,128)
+CW_VALUES=tuple((1 << k)-1 for k in range(1,11))
 STAS=("STA1","STA2","STA3","STA4")
 ACCESS_SETTINGS = {'basic': ('off', '1'), 'rts': ('500', '0')}
 LONG_DEMO_MODES = ('continuous', 'unified')
+UNIFIED_SEGMENT_S = 10
+UNIFIED_GUARD_S = 2
 
 CONTINUOUS_TRIALS = ('A', 'B')
 CONTINUOUS_HOLD_SEGMENTS = 3
-UCB_ARMS = (8, 16)
+UCB_ARMS = (8, 16, 32)
 UCB_WINDOW = 6
 UCB_BONUS_MBPS = 1.0
-HOLD_DROP_FRACTION = .10
-HOLD_DROP_SEGMENTS = 2
+HOLD_DROP_FRACTION = .05
 HOLD_SWITCH_MARGIN = .05
 HOLD_SAMPLES_PER_ARM = 2
 
@@ -27,27 +28,23 @@ def hold_ucb_step(state, previous_w, reward, estimator=None):
     estimator = estimator or throughput_ucb
     state.setdefault('phase','explore')
     state.setdefault('observations',[])
-    state.setdefault('drop_streak',0)
-    state.setdefault('hold_recent',[])
+    state.pop('hold_comparison',None)
     valid=type(reward) in (int,float) and math.isfinite(reward) and reward>=0
     if state.get('last_action') is not None:
         if not valid:
-            state['drop_streak']=0;state['hold_recent']=[]
             _,_,rows=estimator(state['observations'])
-            return previous_w,'上一段评分不可用，维持当前 W，不更新基准',rows
+            return previous_w,'上一段评分不可用，保持当前 W',rows
         if state['phase']=='hold':
-            reference=state['reference_Mbps']
-            state['hold_recent']=(state['hold_recent']+[reward])[-3:]
-            dropped=reference>0 and reward<=reference*(1-HOLD_DROP_FRACTION)
-            state['drop_streak']=state['drop_streak']+1 if dropped else 0
-            if len(state['hold_recent'])==3:
-                state['reference_Mbps']=max(reference,statistics.median(state['hold_recent']))
-            if state['drop_streak']<HOLD_DROP_SEGMENTS:
+            reference=state['last_same_w_Mbps']
+            threshold=round(reference*(1-HOLD_DROP_FRACTION),9)
+            state['hold_comparison']={'W':previous_w,'previous_Mbps':reference,
+                                      'observed_Mbps':reward,'threshold_Mbps':threshold}
+            state['last_same_w_Mbps']=reward
+            if reference<=0 or reward>threshold:
                 _,_,rows=estimator(state['observations'])
-                state['last_action']=previous_w
-                return previous_w,('吞吐下降观察中（1/2），保持当前 W' if dropped else '吞吐保持稳定，保持当前 W'),rows
+                return previous_w,'同档吞吐未下降到触发线，保持当前 W',rows
             state.update(phase='explore',observations=[],incumbent=previous_w,
-                         drop_streak=0,hold_recent=[],trigger='连续两段吞吐较保持基准下降至少10%')
+                         trigger='较上一有效同档段下降至少5%，重新探索 W')
         else:
             state['observations'].append((previous_w,reward))
     _,_,rows=estimator(state['observations'])
@@ -55,20 +52,21 @@ def hold_ucb_step(state, previous_w, reward, estimator=None):
         best=max(rows,key=lambda r:r['mean_Mbps'])
         incumbent=state.get('incumbent')
         chosen=best['W']
-        if incumbent in UCB_ARMS:
-            old=next(r for r in rows if r['W']==incumbent)
+        old=next((r for r in rows if r['W']==incumbent),None)
+        if old is not None:
             if best['mean_Mbps']<=old['mean_Mbps']*(1+HOLD_SWITCH_MARGIN):chosen=incumbent
-        reference=next(r['mean_Mbps'] for r in rows if r['W']==chosen)
-        state.update(phase='hold',reference_Mbps=reference,last_action=chosen,drop_streak=0,hold_recent=[])
+        reference=next(value for w,value in reversed(state['observations']) if w==chosen)
+        state.update(phase='hold',last_same_w_Mbps=reference,last_action=chosen)
+        state.pop('trigger',None)
         return chosen,'本次探索完成，保持较好 W；复探换档须比原档高5%以上',rows
-    # Bounded four-valid-segment coverage prevents a lucky first sample locking in.
+    # Cover every candidate twice before accepting an initial winner.
     under=[r for r in rows if r['count']<HOLD_SAMPLES_PER_ARM]
-    order=(16,8) if state.get('incumbent')==8 else UCB_ARMS
+    incumbent=state.get('incumbent')
     unseen=[r for r in under if not r['count']]
-    chosen=(min(unseen,key=lambda r:order.index(r['W'])) if unseen
+    chosen=(min(unseen,key=lambda r:r['W']==incumbent) if unseen
             else max(under,key=lambda r:r['ucb_Mbps']))['W']
     state['last_action']=chosen
-    return chosen,('吞吐持续下降，重新探索 W' if state.get('trigger') and not state['observations'] else '探索候选，每档收集两个有效段'),rows
+    return chosen,(state['trigger'] if state.get('trigger') and not state['observations'] else '探索候选，每档收集两个有效段'),rows
 
 
 def sta_windows(value):
@@ -80,14 +78,33 @@ def sta_windows(value):
     return dict(settings)
 
 
+def cw_pair(value):
+    if type(value) is int and value in WINDOWS:
+        return {'cwmin':value-1, 'cwmax':8*value-1}
+    if (not isinstance(value,dict) or set(value)!={'cwmin','cwmax'}
+            or any(type(v) is not int or v not in CW_VALUES for v in value.values())
+            or value['cwmin']>value['cwmax']):
+        raise ValueError('CWmin 和 CWmax 须为 1 至 1023 范围内的 2^k−1，且 CWmin ≤ CWmax')
+    return {'cwmin':value['cwmin'], 'cwmax':value['cwmax']}
+
+
+def sta_cw_pairs(value):
+    if not isinstance(value,dict) or set(value)!=set(STAS) or not all(isinstance(v,dict) for v in value.values()):
+        raise ValueError('须为四台 STA 分别填写 CWmin 和 CWmax')
+    return {n:cw_pair(value[n]) for n in STAS}
+
+
+def stage_windows(settings):
+    return {n:value['cwmin']+1 if isinstance(value,dict) else value for n,value in settings.items()}
+
+
 def uniform_window(settings):
-    settings = sta_windows(settings)
-    values = set(settings.values())
+    values = set(stage_windows(settings).values())
     return next(iter(values)) if len(values) == 1 else None
 
 
 def throughput_ucb(recent):
-    """Two arms, recent segment rewards only; no sender count or scenario input.
+    """UCB scores for uniform CW candidates using recent segment rewards.
 
     The engineering exploration amplitude is fixed at 1 Mbps. It is not a
     confidence interval or a claim of stationary-bandit theoretical guarantees.

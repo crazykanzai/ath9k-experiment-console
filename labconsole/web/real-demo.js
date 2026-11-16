@@ -4,12 +4,15 @@ let demoId = '', demoView = null, demoCatalog = null, demoRequestKey = '', demoR
 let demoStarting = false, demoCommandPending = false;
 let demoManualSession='', demoManualMode='';
 const demoClearAt=new Map();
+const demoPausedTime=new Map();
+let paintDemoChart=null;
 function demoDisabled(id,value){const node=$(id),disabled=Boolean(value);if(node.disabled!==disabled)node.disabled=disabled;}
 let demoCatalogAt=0,demoCatalogRequest=null,demoCatalogError='',demoHistorySignature='',demoRenderSignature='';
 const demoTerminal = new Set(['completed', 'failed', 'stopped', 'interrupted']);
 const demoStatuses = {preparing:'准备中', armed:'已就绪，等待T0', running:'运行中', restoring:'正在恢复', completed:'已完成', failed:'门禁停止', stopped:'已停止', interrupted:'控制台曾中断'};
 function demoBackendCurrent(){
- return preparationBackendCurrent()&&boot?.capabilities?.includes('unified_demo')&&boot?.capabilities?.includes('throughput_ucb_v2')&&boot?.capabilities?.includes('per_sta_cw')&&boot?.capabilities?.includes('demo_lifecycle_v3')&&boot?.capabilities?.includes('ucb_hold_v3');
+ const capabilities=boot?.capabilities;
+ return preparationBackendCurrent()&&capabilities?.includes('unified_demo')&&capabilities.includes('demo_lifecycle_v3')&&capabilities.includes('per_sta_cw_pairs')&&capabilities.includes('auto_cw_profile')&&capabilities.includes('ucb_same_w_drop');
 }
 function demoUpgradeMessage(cleanup){
  return '当前后台尚未加载新版演示。'+(cleanup?'请先在环境准备页结束使用并清理，然后':'请')+
@@ -42,9 +45,9 @@ function demoControls() {
  $('real-demo-prepare-action').hidden=!entry.prepare||active;
  $('real-demo-prepare-action').querySelector('button').textContent=demoBackendCurrent()?'返回环境准备':'前往环境准备清理会话';
  demoDisabled('real-demo-access',active||demoStarting);
- demoDisabled('real-demo-initial',Boolean(active||demoStarting));
+ for(const field of demoCwFields)demoDisabled('real-demo-initial-'+field,Boolean(active||demoStarting));
  for(const n of demoStaNames){
-  demoDisabled('real-demo-initial-'+n,active||demoStarting);
+  for(const field of demoCwFields)demoDisabled(`real-demo-initial-${n}-${field}`,active||demoStarting);
   demoDisabled('real-demo-upload-'+n,active||demoStarting);
  }
  demoDisabled('real-demo-history',Boolean(active));
@@ -54,23 +57,38 @@ function demoControls() {
  demoDisabled('real-demo-resume',!resumable||!entry.id||active||demoStarting);
 }
 
-function demoPlot(id, points, timing, series, adaptation, enabledAt, baseline, control) {
+function demoTimeWindow(sessionId, latest) {
+ const span=Number($('real-demo-time-span').value);
+ const cutoff=demoClearAt.get(sessionId)||0;
+ const rightmost=Math.max(cutoff,latest-span);
+ const paused=demoPausedTime.has(sessionId);
+ const start=paused?Math.max(cutoff,Math.min(rightmost,demoPausedTime.get(sessionId))):rightmost;
+ if(paused)demoPausedTime.set(sessionId,start);
+ const stop=start+span;
+ const slider=$('real-demo-time-start');
+ if(Number(slider.min)!==cutoff)slider.min=String(cutoff);
+ if(Number(slider.max)!==rightmost)slider.max=String(rightmost);
+ if(Number(slider.value)!==start)slider.value=String(start);
+ const label=`${start}–${stop} 秒`;
+ slider.setAttribute('aria-valuetext',label);
+ $('real-demo-time-range').textContent=`${label} · ${paused?'查看历史':'跟随最新'}`;
+ demoDisabled('real-demo-time-start',rightmost===cutoff);
+ demoDisabled('real-demo-time-follow',!paused);
+ return {start,stop,cutoff};
+}
+
+function demoPlot(id, points, timing, series, timeline, viewport) {
  const canvas=$(id), ctx=canvas.getContext('2d'), width=canvas.width, height=canvas.height;
  const left=43, right=width-15, top=13, bottom=height-29;
- const total=timing.warmup_s+timing.measure_s+timing.tail_s;
- const viewStart=demoClearAt.get(demoView?.id)||0;
- const duration=adaptation||control?Math.min(total,Math.max(viewStart+90,Math.ceil((points.at(-1)?.second||0)/30)*30)):total;
- const x=t=>left+(right-left)*(t-viewStart)/Math.max(1,duration-viewStart);
- points=points.filter(p=>p.second>viewStart);
+ const {start:viewStart,stop:duration,cutoff}=viewport;
+ const x=t=>left+(right-left)*(t-viewStart)/(duration-viewStart);
+ points=points.filter(p=>p.second>cutoff&&p.second>=viewStart&&p.second<=duration);
  const values=points.flatMap(p=>series.map(s=>s.value(p))).filter(Number.isFinite);
  const max=Math.max(1,...values)*1.1, y=v=>bottom-(bottom-top)*v/max;
  ctx.clearRect(0,0,width,height);
- const phaseColors={explore:'#eaf2f9',fallback:'#e9f3eb',hold:'#e9f3eb',
-                    review:'#eaf2f9',verify:'#eaf2f9',reference:'#fcf2df',switchback:'#fcf2df'};
  for(let k=timing.warmup_s,index=0;timing.segment_s&&k<Math.min(duration,timing.warmup_s+timing.measure_s);k+=timing.segment_s,index++){
   if(k+timing.segment_s<=viewStart)continue;
-  const phase=adaptation?.blocks?.[index]?.phase;
-  const color=control?.blocks?.[index]?.mode==='auto'?'#e9f3eb':phaseColors[phase];
+  const color=timeline?.color(index);
   if(color){
    ctx.fillStyle=color;
    ctx.fillRect(x(Math.max(k,viewStart)),top,x(Math.min(k+timing.segment_s,duration))-x(Math.max(k,viewStart)),bottom-top);
@@ -84,13 +102,9 @@ function demoPlot(id, points, timing, series, adaptation, enabledAt, baseline, c
   ctx.strokeStyle='#d6dde3';ctx.beginPath();ctx.moveTo(left,yy);ctx.lineTo(right,yy);ctx.stroke();
   ctx.textAlign='right';ctx.fillStyle='#536273';ctx.fillText(value.toFixed(max<=10?1:0),left-5,yy+4);
  }
- if(Number.isFinite(baseline)){
-  ctx.strokeStyle='#8a601d';ctx.lineWidth=1.5;ctx.setLineDash([6,4]);
-  ctx.beginPath();ctx.moveTo(left,y(baseline));ctx.lineTo(right,y(baseline));ctx.stroke();
-  ctx.setLineDash([]);
- }
- for(let j=0;j<=4;j++){
-  const t=viewStart+(duration-viewStart)*j/4;ctx.textAlign='center';ctx.fillText(`${Math.round(t)}s`,x(t),height-7);
+ const divisions=duration-viewStart===30?6:4;
+ for(let j=0;j<=divisions;j++){
+  const t=viewStart+(duration-viewStart)*j/divisions;ctx.textAlign='center';ctx.fillText(`${t}s`,x(t),height-7);
  }
  for(const line of series){
   let prior=null;
@@ -104,44 +118,95 @@ function demoPlot(id, points, timing, series, adaptation, enabledAt, baseline, c
    prior={x:xx,y:yy,second:p.second};
   }
  }
- const actions={manual:'手动',adapt:'算法接管',takeback:'接回手动'};
- const markers=control?Object.entries(control.blocks).flatMap(([index,block])=>{
-  const time=timing.warmup_s+Number(index)*timing.segment_s;
-  const prior=control.blocks[Number(index)-1];
-  const changed=block.W!==prior?.W||JSON.stringify(block.per_STA_W)!==JSON.stringify(prior?.per_STA_W);
-  const phaseChange=block.hold_status?.phase&&block.hold_status.phase!==prior?.hold_status?.phase;
-  const label=block.hold_status?.phase==='hold'?'保持':block.hold_status?'探索':'UCB';
-  return (block.action||block.mode==='auto'&&(changed||phaseChange))&&points.at(-1)?.second>=time?[[time,`${actions[block.action]||label} ${demoWindows(block.W,block.per_STA_W)}`]]:[];
- }):[[enabledAt,'启用自适应']];
- for(const [time,label] of markers){
-  if(!Number.isFinite(time)||time>duration||time<viewStart)continue;
+ let labelRight=left-6;
+ for(const [time,label] of timeline?.markers||[]){
+  if(!Number.isFinite(time)||time>duration||time<viewStart||(cutoff>0&&time<=cutoff))continue;
   const mark=x(time);
   ctx.strokeStyle='#285e90';ctx.lineWidth=1.5;
   ctx.beginPath();ctx.moveTo(mark,top);ctx.lineTo(mark,bottom);ctx.stroke();
-  ctx.fillStyle='#234c75';ctx.textAlign=mark>right-115?'right':'left';
-  ctx.fillText(label,mark+(mark>right-115?-5:5),top+14);
+  const textWidth=ctx.measureText(label).width;
+  const labelLeft=Math.min(mark+5,right-textWidth);
+  if(labelLeft<labelRight+6)continue;
+  ctx.fillStyle='#234c75';ctx.textAlign='left';ctx.fillText(label,labelLeft,top+14);
+  labelRight=labelLeft+textWidth;
  }
 }
 
+function demoControlTimeline(timing,control,latest){
+ const actions={manual:'手动',adapt:'算法接管',takeback:'接回手动'};
+ const markers=Object.entries(control.blocks).flatMap(([index,block])=>{
+  const time=timing.warmup_s+Number(index)*timing.segment_s;
+  if(latest<time)return [];
+  const prior=control.blocks[Number(index)-1];
+  const changed=block.W!==prior?.W||JSON.stringify(block.per_STA_CW||block.per_STA_W)!==JSON.stringify(prior?.per_STA_CW||prior?.per_STA_W);
+  const phase=block.hold_status?.phase;
+  const phaseChanged=phase&&phase!==prior?.hold_status?.phase;
+  const automatic=block.mode==='auto';
+  if(!block.action&&!(automatic&&(changed||phaseChanged)))return [];
+  const windowLabel=demoWindows(block.W,block.per_STA_W,block.per_STA_CW);
+  const action=actions[block.action]||(automatic&&control.revision<6?'UCB':'');
+  const label=automatic&&control.revision>=6?windowLabel:`${action} ${windowLabel}`.trim();
+  return [[time,label]];
+ });
+ return {
+  markers,
+  color:index=>control.blocks[index]?.mode==='auto'?'#e9f3eb':null,
+  note:'白底为手动控制，绿底为算法控制，灰带为段首保护期。竖线标出手动应用和控制权切换的分段边界。'
+ };
+}
+
 const demoStaNames=['STA1','STA2','STA3','STA4'];
-const demoWindowValues=[8,16,32,64,128];
-function demoWindowSelect(id,value){
+const demoCwFields=['cwmin','cwmax'];
+const demoCwNames={cwmin:'CWmin',cwmax:'CWmax'};
+const demoCwDefaults={cwmin:127,cwmax:1023};
+function demoCwSelect(id,field,description){
  const select=el('select');select.id=id;
- for(const w of demoWindowValues){const option=el('option',String(w));option.value=String(w);select.append(option);}
- select.value=String(value);return select;
+ select.setAttribute('aria-label',description+' '+demoCwNames[field]);
+ for(let k=1;k<=10;k++){
+  const value=String(2**k-1), option=el('option',value);option.value=value;select.append(option);
+ }
+ select.value=String(demoCwDefaults[field]);return select;
+}
+for(const field of demoCwFields){
+ const label=el('label','统一初始 '+demoCwNames[field]);
+ const input=demoCwSelect('real-demo-initial-'+field,field,'统一初始');
+ input.onchange=()=>{demoRequestKey='';for(const n of demoStaNames)$(`real-demo-initial-${n}-${field}`).value=input.value;};
+ label.append(input);$('real-demo-initial-field').append(label);
 }
 for(const n of demoStaNames){
  const tr=el('tr');tr.append(el('td',n));
  const check=el('input');check.type='checkbox';check.checked=true;check.id='real-demo-upload-'+n;check.setAttribute('aria-label',n+'参与上传');
  const cell=el('td');cell.append(check);tr.append(cell);
- const initial=demoWindowSelect('real-demo-initial-'+n,128);initial.setAttribute('aria-label',n+'初始W');
- const cw=el('td');cw.append(initial);tr.append(cw);$('real-demo-initial-stas').append(tr);
- const label=el('label',n+'目标 W');label.append(demoWindowSelect('real-demo-target-'+n,64));$('real-demo-target-stas').append(label);
- initial.onchange=check.onchange=()=>{demoRequestKey='';};
+ const target=el('div');target.className='cw-pair-grid';
+ for(const field of demoCwFields){
+  const initial=demoCwSelect(`real-demo-initial-${n}-${field}`,field,n+' 初始');
+  initial.onchange=()=>{demoRequestKey='';};
+  const cw=el('td');cw.append(initial);tr.append(cw);
+  const label=el('label',n+' '+demoCwNames[field]);
+  label.append(demoCwSelect(`real-demo-target-${n}-${field}`,field,n+' 目标'));target.append(label);
+ }
+ $('real-demo-initial-stas').append(tr);$('real-demo-target-stas').append(target);
+ check.onchange=()=>{demoRequestKey='';};
 }
-function demoPerSta(prefix){return Object.fromEntries(demoStaNames.map(n=>[n,Number($(prefix+n).value)]));}
-function demoWindows(w, per) {
+function demoPerStaCw(prefix){
+ return Object.fromEntries(demoStaNames.map(n=>{
+  const cw=Object.fromEntries(demoCwFields.map(field=>[field,Number($(`${prefix}${n}-${field}`).value)]));
+  if(cw.cwmin>cw.cwmax)throw new Error(`${n} 的 CWmin 不能大于 CWmax`);
+  return [n,cw];
+ }));
+}
+function demoFillCw(prefix, pairs, windows){
+ for(const n of demoStaNames){
+  const cw=pairs?.[n]||(windows?.[n]!=null?{cwmin:windows[n]-1,cwmax:windows[n]*8-1}:null);
+  if(cw)for(const field of demoCwFields)$(`${prefix}${n}-${field}`).value=String(cw[field]);
+ }
+}
+function demoWindows(w, per, pairs) {
  if(w&&typeof w==='object'){per=w;w=null;}
+ if(pairs){
+  const values=demoStaNames.map(n=>`${pairs[n].cwmin}/${pairs[n].cwmax}`);
+  return values.every(value=>value===values[0])?'CW '+values[0]:demoStaNames.map((n,i)=>`${n} ${values[i]}`).join(' · ');
+ }
  if(w!=null)return 'W'+w;
  return per?demoStaNames.map(n=>n+' W'+per[n]).join(' / '):'NA';
 }
@@ -154,98 +219,83 @@ function demoMean(points, start, stop) {
 
 function renderUnified(v,points,active) {
  const state=v.control, commands=v.control_actions;
- $('real-demo-algorithm-title').textContent=state.revision===3?'算法决策 · UCB探索与稳定保持（W8 / W16）':state.revision===2?'算法决策 · 滑动窗口UCB（W8 / W16）':'算法决策 · 历史滑动窗口UCB';
+ $('real-demo-algorithm-title').textContent=state.revision===7
+  ?demoHoldTitle(state.arms)
+  :'算法决策 · 历史记录';
  const {warmup_s:warm,measure_s:measure,segment_s:step,guard_s:guard}=v.request;
  const latest=points.at(-1)?.second||0;
  const index=Math.min(measure/step-1,Math.max(0,Math.floor((latest-warm)/step)));
  const current=state.blocks[index];
  const mode=commands?.mode||current?.mode;
  if(mode==='manual'&&(demoManualSession!==v.id||demoManualMode!=='manual')){
-  const settings=v.points.at(-1)?.per_STA_W||current?.per_STA_W||v.request.initial_per_STA_W;
-  if(settings)for(const n of demoStaNames)$('real-demo-target-'+n).value=String(settings[n]);
+  const last=v.points.at(-1);
+  const settings=current?.per_STA_W?current:last?.per_STA_W?last:null;
+  demoFillCw('real-demo-target-',settings?settings.per_STA_CW:v.request.initial_per_STA_CW,
+             settings?.per_STA_W||v.request.initial_per_STA_W);
  }
  demoManualSession=v.id;demoManualMode=mode;
  $('real-demo-manual-controls').hidden=!active;
  demoDisabled('real-demo-apply',demoCommandPending||!commands?.manual);
- for(const n of demoStaNames)demoDisabled('real-demo-target-'+n,demoCommandPending||!commands?.manual);
+ for(const n of demoStaNames)for(const field of demoCwFields)demoDisabled(`real-demo-target-${n}-${field}`,demoCommandPending||!commands?.manual);
  $('real-demo-adapt').hidden=mode==='auto';
  demoDisabled('real-demo-adapt',demoCommandPending||!commands?.adapt);
  $('real-demo-takeback').hidden=mode!=='auto';
  demoDisabled('real-demo-takeback',demoCommandPending||!commands?.takeback);
  const pending=commands?.pending;
- const actionNames={manual:'应用手动 W',adapt:'算法接管',takeback:'接回手动'};
- $('real-demo-pending').textContent=pending?`第${pending.segment+1}段将${actionNames[pending.action]}${pending.W!=null?' '+demoWindows(pending.W):''}`
+ const actionNames={manual:'应用手动 CW',adapt:'算法接管',takeback:'接回手动'};
+ $('real-demo-pending').textContent=pending?`第${pending.segment+1}段将${actionNames[pending.action]}${pending.CW||pending.W!=null?' '+demoWindows(pending.W,null,pending.CW):''}`
   :mode==='manual'&&!commands?.adapt?'有一段有效吞吐后可交给算法。':'操作在共同分段边界生效。';
  const last=v.points.at(-1);
  $('real-demo-adapt-status').hidden=false;
  const controlLabel=mode==='auto'?'算法控制':'手动控制';
  $('real-demo-adapt-status').textContent=v.status==='restoring'?'正在恢复实验前配置'
   :demoTerminal.has(v.status)?`本轮已结束 · 最后为${controlLabel}`
-  :`${controlLabel}${last?` · 当前硬件 ${demoWindows(last.W,last.per_STA_W)}`:''} · 上传集合：${(v.request.active_senders||demoStaNames).join('、')}`;
+  :`${controlLabel}${last?` · 当前硬件 ${demoWindows(last.W,last.per_STA_W,last.per_STA_CW)}`:''} · 上传集合：${(v.request.active_senders||demoStaNames).join('、')}`;
  const decision=Object.entries(state.blocks).filter(([k,b])=>b.estimates&&warm+Number(k)*step<=latest).at(-1);
  $('real-demo-algorithm').hidden=!decision;
  const table=$('real-demo-estimates');table.replaceChildren();
  if(decision){
   const [k,block]=decision;
-  $('real-demo-decision').textContent=`最近 ${state.window_segments} 个自动段 · 第 ${Number(k)+1} 段目标 ${demoWindows(block.W,block.per_STA_W)} · ${block.reason}`;
-  if(block.hold_status){
-   const h=block.hold_status;
-   $('real-demo-decision').textContent=`第 ${Number(k)+1} 段 · ${h.phase==='hold'?'稳定保持':'候选探索'} ${demoWindows(block.W,block.per_STA_W)} · ${block.reason}`+
-    (h.reference_Mbps!=null?` · 保持基准 ${anumber(h.reference_Mbps)} Mbps · 下降触发线 ${anumber(h.reference_Mbps*.9)} Mbps · 连续下降 ${h.drop_streak||0}/2 段`:'');
-  }
+  const index=Number(k)+1;
+  const setting=demoWindows(block.W,block.per_STA_W,block.per_STA_CW);
+  $('real-demo-decision').textContent=state.revision===7
+   ?demoCurrentDecision(state,block,index,setting)
+   :demoTargetDecision(state,block,index,setting);
   for(const r of block.estimates){
    const tr=el('tr');
-   for(const value of ['W'+r.W,r.count,anumber(r.mean_Mbps),r.count?anumber(r.ucb_Mbps):'待探索'])tr.append(el('td',String(value)));
+   for(const value of [demoWindows(r.W,r.per_STA_W),r.count,anumber(r.mean_Mbps),r.count?anumber(r.ucb_Mbps):'待探索',r.status||'—'])tr.append(el('td',String(value)));
    table.append(tr);
   }
  }
- $('real-demo-comparison').hidden=true;
  return Object.entries(state.blocks).flatMap(([k,block])=>{
   const idx=Number(k), start=warm+idx*step, stop=start+step;
   if(start>=latest)return [];
-  return [{index:idx,W:block.W,per_STA_W:block.per_STA_W,start_s:start,stop_s:stop,phase:block.mode==='manual'?'手动':'算法',
+  return [{index:idx,W:block.W,per_STA_W:block.per_STA_W,per_STA_CW:block.per_STA_CW,start_s:start,stop_s:stop,phase:block.mode==='manual'?'手动':'算法',
            total_Mbps:demoMean(points,start,stop),stable_Mbps:demoMean(points,start+guard,stop-state.score_tail_s)}];
  });
 }
 
-function renderContinuous(v,points,enabledAt) {
- const {activation,selection,blocks,provisional,decisions}=v.adaptation;
- const {warmup_s:warm,measure_s:measure,segment_s:step,guard_s:guard}=v.request;
- const latest=points.at(-1)?.second||0;
- const activeBlock=blocks[Math.max(0,Math.floor((latest-warm)/step))];
- const actualWindows=v.points.at(-1)?.per_STA_W||activeBlock?.W;
- const currentWindows=actualWindows?' · 当前 '+demoWindows(null,actualWindows):'';
- const phases={baseline:'固定基线',explore:'试候选',fallback:'恢复上一档',hold:'保持配置',
-               review:'等待参考段',reference:'邻近基线',verify:'复测初选',switchback:'回切固定 W'};
- const status=$('real-demo-adapt-status');
- status.textContent=v.status==='restoring'?'正在恢复实验前配置':demoTerminal.has(v.status)?'本轮已结束':activation
-  ? (phases[activeBlock?.phase]||'等待开始')+currentWindows
-  : (v.adaptation_control?.message||'固定W运行中')+currentWindows;
- const start=k=>warm+k*step;
- const stable=k=>demoMean(points,start(k)+guard,start(k)+step-(v.adaptation.score_tail_s??1));
- const baseline=activation?activation.baseline_blocks.map(stable):[];
- const holdStart=selection?start(selection.hold_block):null;
- const holdElapsed=holdStart==null?0:Math.max(0,Math.min(latest,warm+measure)-holdStart);
- const completeHold=selection?Object.keys(blocks).map(Number).filter(k=>k>=selection.hold_block&&start(k)+step<=latest).map(stable):[];
- const mean=values=>values.length&&values.every(v=>v!=null)?values.reduce((a,b)=>a+b,0)/values.length:null;
- const baselineMean=mean(baseline), holdMean=mean(completeHold);
- const after=activation?demoMean(points,Math.ceil(enabledAt),Math.min(latest,warm+measure)):null;
- const gain=baselineMean>0&&holdMean!=null?100*(holdMean/baselineMean-1):null;
- const comparison=$('real-demo-comparison'), final=v.analysis?.comparison;
- comparison.hidden=!activation;
- const outcome=selection?(selection.candidate==='baseline'?'保持初始 W':'采用 '+demoWindows(null,selection.W))
-  :provisional&&provisional.candidate!=='baseline'?'初选 '+demoWindows(null,v.adaptation.candidates[provisional.candidate])+'，等待回切复核':'正在比较';
- const pair=selection?.evidence;
- const decision=decisions?.at(-1);
- const shortW=key=>demoWindows(v.adaptation.candidates[key]?.STA1,null);
- const pairText=decision?` · ${shortW(decision.candidate)} ${anumber(decision.candidate_Mbps)} vs ${shortW(decision.previous_candidate)} ${anumber(decision.previous_Mbps)} Mbps，${decision.accepted?'保留候选':'恢复 '+shortW(decision.previous_candidate)}`
-  :pair?.candidate_Mbps!=null&&pair?.baseline_Mbps!=null?` · 回切复测 ${anumber(pair.candidate_Mbps)} vs ${anumber(pair.baseline_Mbps)} Mbps`:'';
- comparison.textContent=`${outcome}${pairText} · 启用前基线 ${anumber(final?.baseline_stable_Mbps??baselineMean)} Mbps · 保持段 ${anumber(final?.selected_stable_Mbps??holdMean)} Mbps · 同轮阶段差 ${anumber(final?.relative_stage_difference_pct??gain)}% · 启用后含探索 ${anumber(final?.post_activation_Mbps??after)} Mbps${selection&&holdElapsed<v.adaptation.minimum_hold_s?` · 保持观察 ${holdElapsed}/${v.adaptation.minimum_hold_s} 秒`:''}`;
- return Object.entries(blocks).filter(([k])=>start(Number(k))<latest).map(([k,block])=>{
-  const index=Number(k), from=start(index),to=from+step;
-  return {index,W:null,per_STA_W:block.W,start_s:from,stop_s:to,
-          total_Mbps:demoMean(points,from,to),stable_Mbps:stable(index),phase:phases[block.phase]};
- });
+function demoHoldTitle(arms){
+ return '算法决策 · UCB探索与稳定保持（'+arms.map(w=>'W'+w).join(' / ')+'）';
+}
+
+function demoHoldDecision(index,block,setting,details){
+ const phase=block.hold_status.phase==='hold'?'稳定保持':'候选探索';
+ return '第 '+index+' 段 · '+phase+' '+setting+' · '+block.reason+details;
+}
+
+function demoTargetDecision(state,block,index,setting){
+ const lookback=state.window_segments!=null?`最近 ${state.window_segments} 个自动段 · `:'';
+ return `${lookback}第 ${index} 段目标 ${setting} · ${block.reason}`;
+}
+
+function demoCurrentDecision(state,block,index,setting){
+ const hold=block.hold_status;
+ if(!hold)return demoTargetDecision(state,block,index,setting);
+ const c=hold.hold_comparison;
+ const details=c?' · '+demoWindows(c.W)+' 同档比较 '+anumber(c.previous_Mbps)+' → '+anumber(c.observed_Mbps)+' Mbps · 触发线 '+anumber(c.threshold_Mbps)+' Mbps'
+  :hold.phase==='hold'?' · 最近有效同档段 '+anumber(hold.last_same_w_Mbps)+' Mbps':'';
+ return demoHoldDecision(index,block,setting,details);
 }
 
 function renderDemo(v) {
@@ -255,27 +305,24 @@ function renderDemo(v) {
  demoRenderSignature=signature;
  demoView=v;
  const cleared=demoClearAt.get(v.id);
- $('real-demo-clear-note').textContent=cleared?`仅隐藏截至本轮${cleared}秒的曲线；后续采样继续显示。原始数据、分段统计与学习记录保留。`:'清除只影响曲线显示，不删除数据，不重置算法。';
+ $('real-demo-clear-note').textContent=cleared?`仅隐藏截至本轮${cleared}秒的曲线；后续采样继续显示。原始数据、分段统计与学习记录保留。`:'';
  const active=!demoTerminal.has(v.status)&&v.status!=='restoring';
  const restoration=v.restoration?` · ${v.restoration.confirmed?'恢复已确认':'恢复未确认'}`:'';
  const latest=v.points.at(-1);
  $('real-demo-status').textContent=`${demoStatuses[v.status]||v.status} · ${demoAccessName(v.request.access_mode)} · ${v.phase}${latest?' · '+latest.second+' 秒':''}${restoration}${v.error?' · '+v.error:''}`;
- if(v.air_evidence==='not_collected_MON15_disabled')$('real-demo-status').textContent+=' · MON15未启用，空口旁证未采集';
  demoDisabled('real-demo-stop',!active);
  $('real-demo-stop').title=active?'中止当前演示并恢复本轮配置。':v.status==='restoring'?'正在恢复，请等待结果。':'当前记录已结束，没有正在运行的演示可停止。';
- demoDisabled('real-demo-adapt',!active||!v.adaptation_control?.enabled);
- $('real-demo-adapt').title=v.adaptation_control?.message||'在固定基线完成后启用';
- $('real-demo-adapt-status').hidden=!v.adaptation;
  $('real-demo-data').hidden=false;
- demoDisabled('real-demo-apply',!active||v.request.mode!=='manual'||v.events.filter(e=>e.kind==='stage_plan').length>=2);
- $('real-demo-manual-controls').hidden=true;
- $('real-demo-algorithm').hidden=true;
- $('real-demo-pending').textContent=v.manual_pending?`W${v.manual_pending.W}已提交，等待第${v.manual_pending.segment+1}段`:$('real-demo-apply').disabled?'后续测量段已封存，不能继续修改。':'提前提交下一段W；在下一段边界生效。';
- $('real-demo-apply').title=$('real-demo-pending').textContent;
+ if(!v.control){
+  $('real-demo-adapt-status').hidden=true;
+  $('real-demo-manual-controls').hidden=true;
+  $('real-demo-algorithm').hidden=true;
+ }
  if(changedSession&&[...$('real-demo-history').options].some(o=>o.value===v.id))$('real-demo-history').value=v.id;
  $('real-demo-export').hidden=false;
  $('real-demo-export').href='/api/demo/export?id='+encodeURIComponent(v.id);
  if(v.request.mode==='pilot'){
+  paintDemoChart=null;
   $('real-demo-data').hidden=true;
   return;
  }
@@ -289,7 +336,6 @@ function renderDemo(v) {
    points.push({...known.get(k+1),second:k+1,per_STA_Mbps:per,total_Mbps:Object.values(per).reduce((a,b)=>a+b,0)});
   });
  }
- const enabledAt=v.adaptation?.activation?(v.adaptation.activation.at_ns-v.T0_ns)/1e9:null;
  const recent=new Map(), history=[];
  for(const p of points){
   if(history.length&&p.second!==history.at(-1).second+1)history.length=0;
@@ -298,46 +344,43 @@ function renderDemo(v) {
   if(history.length>10)history.shift();
   if(history.length===10)recent.set(p.second,history.reduce((a,q)=>a+q.total_Mbps,0)/10);
  }
- const liveCurve=v.adaptation||v.control;
- const series=[{label:'聚合吞吐（每秒）',color:liveCurve?'#758799':'#1b2836',width:liveCurve?1.1:2.6,value:p=>p.total_Mbps},
+ const showSmoothed=Boolean(v.adaptation||v.control);
+ const series=[{label:'聚合吞吐（每秒）',color:showSmoothed?'#758799':'#1b2836',width:showSmoothed?1.1:2.6,value:p=>p.total_Mbps},
   ...demoStaNames.map(n=>({label:n,color:staColors[n],width:1.4,value:p=>p.per_STA_Mbps?.[n]}))];
- if(liveCurve)series.push({label:'聚合吞吐（10秒滑动均值）',color:'#192631',width:2.6,value:p=>recent.get(p.second)});
- const baseline=v.analysis?.comparison?.baseline_stable_Mbps??v.adaptation?.activation?.baseline_Mbps;
+ if(showSmoothed)series.push({label:'聚合吞吐（10秒滑动均值）',color:'#192631',width:2.6,value:p=>recent.get(p.second)});
+ const timeline=v.control
+  ?demoControlTimeline(v.request,v.control,points.at(-1)?.second||0)
+  :null;
  const legend=$('real-demo-legend');
- const keys=Number.isFinite(baseline)?[...series,{label:'启用前固定 W 基线',color:'#8a601d',dashed:true}]:series;
- if(changedSession||legend.children.length!==keys.length)legend.replaceChildren(...keys.map(line=>{
+ if(changedSession||legend.children.length!==series.length)legend.replaceChildren(...series.map(line=>{
   const item=el('li'), swatch=el('span');
   swatch.style.borderColor=line.color;
-  if(line.dashed)swatch.style.borderTopStyle='dashed';
   swatch.setAttribute('aria-hidden','true');
   item.append(swatch,line.label);return item;
  }));
- $('real-demo-chart-note').textContent=v.control?'白底为手动控制，绿底为算法控制，灰带为段首保护期。竖线标出手动应用和控制权切换的分段边界。':v.adaptation?.policy==='sequential'
-  ?'蓝底是试候选，绿底是恢复或保持已采用的 W，灰带是段首保护期。评分取保护期后的12秒。'
-  :v.adaptation?.policy==='switchback'?'蓝底是试候选及复测，浅黄是固定 W 对照，绿底是保持段。评分用段首保护期后的12秒；启用后总均值包含探索和保护期。'
-  :v.adaptation?'蓝底为探索和复测，绿底为保持段，灰带为段首保护期。':'灰带为切换保护期，吞吐仍计入全程。';
- demoPlot('real-demo-rate',points,v.request,series,v.adaptation,enabledAt,baseline,v.control);
+ $('real-demo-chart-note').textContent=timeline?.note||'灰带为段首保护期。';
+ paintDemoChart=()=>{
+  const viewport=demoTimeWindow(v.id,points.at(-1)?.second||0);
+  demoPlot('real-demo-rate',points,v.request,series,timeline,viewport);
+ };
+ paintDemoChart();
  const body=$('real-demo-segments');body.replaceChildren();
- let segments=v.analysis?.segments||[];
- if(v.control){
-  segments=renderUnified(v,points,active);
- }else if(v.adaptation){
-  segments=renderContinuous(v,points,enabledAt);
- }else{
-  const comparison=v.analysis?.comparison;
-  $('real-demo-comparison').hidden=!comparison;
-  if(comparison)$('real-demo-comparison').textContent=`W${comparison.baseline_W}基线 ${anumber(comparison.baseline_stable_Mbps)} Mbps · 在线稳定段 ${anumber(comparison.selected_stable_Mbps)} Mbps · 含探索的全测量 ${anumber(comparison.whole_measurement_Mbps)} Mbps · 同轮阶段差 ${anumber(comparison.relative_stage_difference_pct)}%`;
- }
+ const segments=v.control
+  ?renderUnified(v,points,active)
+  :v.analysis?.segments||[];
  for(const s of segments){
   const tr=el('tr');
-  for(const value of [s.phase?`${s.index+1} · ${s.phase}`:s.index+1,demoWindows(s.W,s.per_STA_W),`${s.start_s}–${s.stop_s}`,anumber(s.total_Mbps),anumber(s.stable_Mbps)])tr.append(el('td',String(value)));
+  for(const value of [s.phase?`${s.index+1} · ${s.phase}`:s.index+1,demoWindows(s.W,s.per_STA_W,s.per_STA_CW),`${s.start_s}–${s.stop_s}`,anumber(s.total_Mbps),anumber(s.stable_Mbps)])tr.append(el('td',String(value)));
   body.append(tr);
  }
  $('real-demo-events').textContent=v.events.filter(e=>!['sample','eof'].includes(e.kind)).map(e=>{
   const sec=v.T0_ns?(e.receipt?.wall_ns-e.receipt?.planned_ns)/1e6:null;
   const read=e.receipt?.readback;
   const access=e.receipt?.settings;
-  return `${e.node||'控制机'} ${e.kind} ${e.message||''}${e.W?' '+(typeof e.W==='object'?demoWindows(null,e.W):'W'+e.W):''}${read?' '+read.hw_cwmin+'/'+read.hw_cwmax:''}${access?' '+demoAccessName(e.receipt.access_mode)+'，RTS 阈值 '+access.rts+'，Basic override '+access.override:''}${Number.isFinite(sec)?' 读回相对计划 '+sec.toFixed(1)+'ms':''}`;
+  const block=v.control?.blocks[e.index??e.receipt?.index];
+  const automatic=v.control?.revision>=6&&block?.mode==='auto'&&Number.isInteger(block.W);
+  const expected=automatic?demoWindows(block.W):e.CW?demoWindows(null,null,e.CW):e.W?demoWindows(e.W):'';
+  return `${e.node||'控制机'} ${e.kind} ${e.message||''}${expected?' '+expected:''}${read&&!automatic?' '+read.hw_cwmin+'/'+read.hw_cwmax:''}${access?' '+demoAccessName(e.receipt.access_mode)+'，RTS 阈值 '+access.rts+'，Basic override '+access.override:''}${Number.isFinite(sec)?' 读回相对计划 '+sec.toFixed(1)+'ms':''}`;
  }).join('\n');
 }
 
@@ -367,7 +410,8 @@ async function refreshDemo(force=false) {
     demoHistorySignature=signature;
     select.replaceChildren(el('option','选择演示记录'));select.options[0].value='';
     for(const row of demoCatalog.sessions){
-     const option=el('option',`${row.id.slice(0,8)} · ${demoModeName(row.request.mode)} · ${demoAccessName(row.request.access_mode)} · ${demoStatuses[row.status]||row.status}`);
+     const kind=row.request.mode==='unified'?'手动与算法演示':'旧版演示';
+     const option=el('option',`${row.id.slice(0,8)} · ${kind} · ${demoAccessName(row.request.access_mode)} · ${demoStatuses[row.status]||row.status}`);
      option.value=row.id;select.append(option);
     }
     select.value=demoId||old;
@@ -385,36 +429,44 @@ function updateDemoPage(force=false){
   $('real-demo-status').textContent='无法取得现场状态：'+e.message;
  });
 }
-function demoModeName(mode){return {unified:'手动与算法演示',continuous:'持续自适应演示',pilot:'切换检查',manual:'手动演示',auto:'自动调整',fixed:'固定对照'}[mode]||mode;}
 function demoAccessName(mode){return mode==='rts'?'RTS/CTS':'Basic';}
 
-$('real-demo-initial').onchange=()=>{demoRequestKey='';for(const n of demoStaNames)$('real-demo-initial-'+n).value=$('real-demo-initial').value;};
 $('real-demo-duration').onchange=()=>{demoRequestKey='';};
-$('real-demo-clear').onclick=()=>{if(!demoView)return;demoClearAt.set(demoView.id,demoView.points.at(-1)?.second||0);demoRenderSignature='';renderDemo(demoView);};
-$('real-demo-show-all').onclick=()=>{if(!demoView)return;demoClearAt.delete(demoView.id);demoRenderSignature='';renderDemo(demoView);};
+$('real-demo-time-span').onchange=()=>paintDemoChart?.();
+$('real-demo-time-start').oninput=e=>{
+ if(!demoView)return;
+ demoPausedTime.set(demoView.id,Number(e.target.value));paintDemoChart?.();
+};
+$('real-demo-time-follow').onclick=()=>{
+ if(!demoView)return;
+ demoPausedTime.delete(demoView.id);paintDemoChart?.();
+};
+$('real-demo-clear').onclick=()=>{if(!demoView)return;demoClearAt.set(demoView.id,demoView.points.at(-1)?.second||0);demoPausedTime.delete(demoView.id);demoRenderSignature='';renderDemo(demoView);};
+$('real-demo-show-all').onclick=()=>{if(!demoView)return;demoClearAt.delete(demoView.id);demoPausedTime.set(demoView.id,0);demoRenderSignature='';renderDemo(demoView);};
 $('real-demo-resume').onclick=()=>guard(async()=>{
  if(!demoView?.restoration?.confirmed||!demoTerminal.has(demoView.status))throw new Error('请等待本轮停止并确认恢复。');
- const settings=demoView.points.at(-1)?.per_STA_W||demoView.request.initial_per_STA_W||Object.fromEntries(demoStaNames.map(n=>[n,demoView.request.initial_w]));
- for(const n of demoStaNames){$('real-demo-initial-'+n).value=String(settings[n]);$('real-demo-upload-'+n).checked=(demoView.request.active_senders||demoStaNames).includes(n);}
+ const last=demoView.points.at(-1), previous=demoView.request;
+ demoFillCw('real-demo-initial-',last?.per_STA_CW||(!last?.per_STA_W?previous.initial_per_STA_CW:null),
+            last?.per_STA_W||previous.initial_per_STA_W||Object.fromEntries(demoStaNames.map(n=>[n,previous.initial_w])));
+ for(const n of demoStaNames)$('real-demo-upload-'+n).checked=(previous.active_senders||demoStaNames).includes(n);
  $('real-demo-access').value=demoView.request.access_mode||'basic';demoRequestKey='';
  await $('real-demo-start').onclick();
 });
 $('real-demo-access').onchange=()=>{demoRequestKey='';demoControls();};
 $('real-demo-open').onclick=()=>guard(async()=>{demoId=$('real-demo-history').value;await refreshDemo(true);});
 $('real-demo-start').onclick=()=>guard(async()=>{
- const initial_w=Number($('real-demo-initial').value);
- const initial_per_STA_W=demoPerSta('real-demo-initial-');
+ const initial_per_STA_CW=demoPerStaCw('real-demo-initial-');
  const active_senders=demoStaNames.filter(n=>$('real-demo-upload-'+n).checked);
  if(!active_senders.length)throw new Error('请至少选择一台上传STA。');
  const access_mode=$('real-demo-access').value;
- if(!window.confirm(`使用 ${demoAccessName(access_mode)} 启动 ${active_senders.join('、')} 的 UDP 业务？初始：${demoWindows(initial_per_STA_W)}。本轮上传集合和接入机制固定。`))return;
+ if(!window.confirm(`使用 ${demoAccessName(access_mode)} 启动 ${active_senders.join('、')} 的 UDP 业务？初始 ${demoWindows(null,null,initial_per_STA_CW)}。本轮上传集合和接入机制固定。`))return;
  demoStarting=true;demoControls();
  if(!demoRequestKey)demoRequestKey=crypto.randomUUID();
  try{
   await refreshDemoCatalog(true);
   const entry=demoEntry();
   if(!entry.id||entry.active)throw new Error(entry.message);
-  const request={mode:'unified',initial_w,initial_per_STA_W,active_senders,measure_s:Number($('real-demo-duration').value),request_key:demoRequestKey,preparation_id:entry.id,authorize:true};
+  const request={mode:'unified',initial_per_STA_CW,active_senders,measure_s:Number($('real-demo-duration').value),request_key:demoRequestKey,preparation_id:entry.id,authorize:true};
   if(boot?.capabilities?.includes('demo_access_modes'))request.access_mode=access_mode;
   const value=await api('/api/demo/start',request);
   demoId=value.id;demoRequestKey='';renderDemo(value);
@@ -428,7 +480,7 @@ for(const [id,action] of [['real-demo-stop','stop'],['real-demo-apply','manual']
   $(id).disabled=true;
   try{
    const request={id:demoId,action};
-   if(action==='manual')request.W=demoView?.request.mode==='unified'?demoPerSta('real-demo-target-'):Number($('real-demo-target-STA1').value);
+   if(action==='manual')request.CW=demoPerStaCw('real-demo-target-');
    const value=await api('/api/demo/command',request);
    demoCommandPending=false;demoRenderSignature='';renderDemo(value);
   }finally{demoCommandPending=false;demoRenderSignature='';await refreshDemo(true);}

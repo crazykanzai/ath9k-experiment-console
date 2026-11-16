@@ -18,6 +18,7 @@ from .time_reference import TimeReference
 ROLES=('AP','STA1','STA2','STA3','STA4','MON15')
 HELPER_SHA='42c6d0a0bcaf5f0bd944d0c92d02d60135d9d215a518ec25b6ab3289b3de48b7'
 SNTP_REQUIRED='NTPSynchronized=yes'
+DEFAULT_TIME_TRANSPORT='ap_relay'
 
 
 def business_cidr(value,platform):
@@ -192,7 +193,7 @@ class PreparationHub:
     def _release(self):
         with self.store.transaction() as db:db.execute('DELETE FROM reservations WHERE job=?',('prepare:'+self.active['id'],))
 
-    def create(self,platform,password,sudo_password,key,cidr='',time_transport='direct'):
+    def create(self,platform,password,sudo_password,key,cidr='',time_transport=DEFAULT_TIME_TRANSPORT):
         platform=validate_platform(platform)
         if time_transport not in ('direct','ap_relay'):raise ValueError('未知授时路径')
         platform['controller']['time_transport']=time_transport
